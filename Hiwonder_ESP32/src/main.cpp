@@ -2,51 +2,199 @@
 #include <Arduino.h>
 #include <lx16a-servo.h>
 LX16ABus servoBus;
-LX16AServo servo(&servoBus, 1);
+LX16AServo servo1(&servoBus, 1);
+LX16AServo servo2(&servoBus, 2);
+LX16AServo servo3(&servoBus, 3);
+LX16AServo servo4(&servoBus, 4);
+LX16AServo servo5(&servoBus, 5);
+LX16AServo servo6(&servoBus, 6);
+
+bool done_flag = true;
 
 void setup() {
 	Serial.begin(115200);
 	Serial.println("Beginning Servo Example");
 	servoBus.beginOnePinMode(&Serial2,33);
 	servoBus.debug(true);
-	servoBus.retry=0;
+	servoBus.retry=1;
 
 	pinMode(LED_BUILTIN, OUTPUT);
 	digitalWrite(LED_BUILTIN, HIGH);
+
+	servo6.move_time(0, 3000);
+	delay(4000);
+	servo6.move_time(24000, 3000);
+
+	delay(6000);
+
+	servo1.move_time(0, 3000);
+	delay(4000);
+	servo1.move_time(16000, 3000);
+	delay(4000);
+	servo1.move_time(8000, 3000);
+
+	delay(6000);
+	int id = 0;
+	int temp = 0;
+	int volt = 0;
+
+	id = servo1.id_read(1);
+	temp = servo1.temp();
+	volt = servo1.vin();
+
+	Serial.println("ID is: ");
+	Serial.println(String(id));
+	Serial.println("Servo temperature is: ");
+	Serial.println(String(temp));
+	Serial.println("Servo V_in is: ");
+	Serial.println(String(volt));
+
+	// Doesnt work ATM
+	// servo.readLimits();
 }
 
 void loop() {
-	int divisor =4;
+	// int divisor =4;
 
-	for (int x = -9000; x < 9000; x+=1000) {
-		long start = millis();
-		int angle = x;
-		int16_t pos = 0;
-		pos = servo.pos_read();
-//		Serial.printf("\n\nPosition at %d -> %s\n", pos,
-//				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
+// 	for (int x = -9000; x < 9000; x+=1000) {
+// 		long start = millis();
+// 		int angle = x;
+// 		int16_t pos = 0;
+// 		pos = servo.pos_read();
+// 		Serial.printf("\n\nPosition at %d -> %s\n", pos, servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
 
-		//do {
-			servo.move_time(angle, 10*divisor);
-		//} while (!servo.isCommandOk());
-//		Serial.printf("Move to %d -> %s\n", angle,
-//				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
-//		Serial.println("Voltage = " + String(servo.vin()));
-//		Serial.println("Temp = " + String(servo.temp()));
-//		Serial.println("ID  = " + String(servo.id_read()));
-//		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
-		long took = millis()-start;
-		long time = (10*divisor)-took;
-		if(time>0)
-			delay(time);
-		else{
-			Serial.println("Real Time broken, took: "+String(took));
-		}
+// 		//do {
+// 			servo.move_time(angle, 10*divisor);
+// 		//} while (!servo.isCommandOk());
+// //		Serial.printf("Move to %d -> %s\n", angle,
+// //				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
+// //		Serial.println("Voltage = " + String(servo.vin()));
+// //		Serial.println("Temp = " + String(servo.temp()));
+// //		Serial.println("ID  = " + String(servo.id_read()));
+// //		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
+// 		long took = millis()-start;
+// 		long time = (10*divisor)-took;
+// 		if(time>0)
+// 			delay(time);
+// 		else{
+// 			Serial.println("Real Time broken, took: "+String(took));
+// 		}
+// 	}
+	if (done_flag == false) {
+		Serial.println("Starting moving procedure.");
+		// servo6.move_time(16000, 3000);
+		// Serial.println("moving to 16000");
+		// delay(4000);
+
+		// servo6.move_time(4500, 3000);
+		// Serial.println("moving to 4500");
+		// delay(4000);
+
+		// servo6.move_time(0, 3000);
+		// Serial.println("moving to 0");
+		// delay(4000);
+
+		// servo.move_time(-4500, 3000);
+		// Serial.println("moving to -4500");
+		// delay(2000);
+
+		// servo.move_time(-9000, 3000);
+		// Serial.println("moving to -9000");
+		// delay(2000);
+
+		done_flag = true;
+
 	}
-
-	servo.move_time(-9000, 3000);
+	
 	delay(4000);
 }
+
+// #include <Arduino.h>
+// #include <lx16a-servo.h>
+// LX16ABus servoBus;
+// LX16AServo servo(&servoBus, 1);
+// LX16AServo servo2(&servoBus, 2);
+// LX16AServo servo3(&servoBus, 3);
+// LX16AServo servo4(&servoBus, 4);
+// LX16AServo servo5(&servoBus, 5);
+// LX16AServo servo6(&servoBus, 6);
+
+// void setup() {
+// 	servoBus.begin(&Serial2, 26, // on TX pin 1
+// 			25); // use pin 2 as the TX flag for buffer
+// 	Serial.begin(115200);
+// 	servoBus.retry = 1; // enforce synchronous real time
+// 	servoBus.debug(true);
+// 	Serial.println("Beginning Coordinated Servo Example");
+
+// }
+// // 40ms trajectory planning loop seems the most stable
+
+// void loop() {
+// 	int divisor = 3;
+// 	for (int i = 0; i < 1000 / divisor; i++) {
+// 		long start = millis();
+// 		int16_t pos = 0;
+// 		pos = servo.pos_read();
+// 		int16_t pos2 = servo2.pos_read();
+// 		int16_t pos3 = servo3.pos_read();
+
+// 		uint16_t angle = i * 24 * divisor;
+
+// 		servo2.move_time_and_wait_for_sync(angle, 10 * divisor);
+// 		servo3.move_time_and_wait_for_sync(angle, 10 * divisor);
+// 		servo.move_time_and_wait_for_sync(angle, 10 * divisor);
+
+// 		servoBus.move_sync_start();
+
+// 		//if(abs(pos2-pos)>100){
+// 		Serial.printf("\n\nPosition at %d and %d-> %s\n", pos, pos2,
+// 				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
+// 		Serial.printf("Move to %d -> %s\n", angle,
+// 				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
+// 		//}
+// 		long took = millis() - start;
+
+// 		long time = (10 * divisor) - took;
+// 		if (time > 0)
+// 			delay(time);
+// 		else {
+// 			Serial.println("Real Time broken, took: " + String(took));
+// 		}
+// 	}
+// 	Serial.println("Interpolated Set pos done, not long set");
+
+// 	servoBus.retry = 5; // These commands must arrive
+// 	servo.move_time(0, 10000);
+// 	servo2.move_time(0, 10000);
+// 	servo3.move_time(0, 10000);
+// 	servoBus.retry = 0; // Back to low latency mode
+// 	for (int i = 0; i < 1000 / divisor; i++) {
+// 		long start = millis();
+// 		int16_t pos = 0;
+// 		pos = servo.pos_read();
+// 		int16_t pos2 = servo2.pos_read();
+// 		int16_t pos3 = servo3.pos_read();
+
+// 		Serial.printf("\n\nPosition at %d and %d\n", pos, pos2);
+
+// 		Serial.println("Voltage = " + String(servo.vin()));
+// 		Serial.println("Temp = " + String(servo.temp()));
+
+// 		long took = millis() - start;
+
+// 		long time = (10 * divisor) - took;
+// 		if (time > 0)
+// 			delay(time);
+// 		else {
+// 			Serial.println("Real Time broken, took: " + String(took));
+// 		}
+// 	}
+// 	Serial.println("Loop resetting");
+// }
+
+
+
 
 // // Playing with PWM pin
 // #include <Arduino.h>
