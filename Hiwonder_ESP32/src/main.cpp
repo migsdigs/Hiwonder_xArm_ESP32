@@ -1,46 +1,75 @@
 // Single Pin mode
 #include <Arduino.h>
 #include <lx16a-servo.h>
+#include <WiFi.h>
+
+// Servos and Servo Bus Instantiation
 LX16ABus servoBus;
-LX16AServo servo1(&servoBus, 1);
-LX16AServo servo2(&servoBus, 2);
-LX16AServo servo3(&servoBus, 3);
-LX16AServo servo4(&servoBus, 4);
-LX16AServo servo5(&servoBus, 5);
-LX16AServo servo6(&servoBus, 6);
+LX16AServo servo1(&servoBus, 1); // 0-16800 (0-168 degrees)
+LX16AServo servo2(&servoBus, 2); // 0-24000 (0-240 degrees)
+LX16AServo servo3(&servoBus, 3); // 0-24000 (0-240 degrees)
+LX16AServo servo4(&servoBus, 4); // 0-24000 (0-240 degrees)
+LX16AServo servo5(&servoBus, 5); // 0-24000 (0-240 degrees)
+LX16AServo servo6(&servoBus, 6); // 0-24000 (0-240 degrees)
 
 bool done_flag = true;
 
+// Wifi const
+const char* ssid = "Rogachino";
+const char* password = "12345678";
+
+bool LED_status = true;
+
 void setup() {
 	Serial.begin(115200);
+
+	// LED
+	pinMode(LED_BUILTIN, OUTPUT);
+	digitalWrite(LED_BUILTIN, LED_status);
+
+	// WiFi setup
+	delay(1000);
+	WiFi.mode(WIFI_STA); //Optional
+    WiFi.begin(ssid, password);
+    Serial.println("\nConnecting");
+
+	while(WiFi.status() != WL_CONNECTED){
+		LED_status = !LED_status;
+		digitalWrite(LED_BUILTIN, LED_status);
+        Serial.print(".");
+        delay(100);
+    }
+
+	Serial.println("\nConnected to the WiFi network");
+    Serial.print("Local ESP32 IP: ");
+    Serial.println(WiFi.localIP());
+
+	// Servo Setup
 	Serial.println("Beginning Servo Example");
 	servoBus.beginOnePinMode(&Serial2,33);
 	servoBus.debug(true);
 	servoBus.retry=1;
 
-	pinMode(LED_BUILTIN, OUTPUT);
-	digitalWrite(LED_BUILTIN, HIGH);
+	// servo6.move_time(0, 3000);
+	// delay(6000);
+	// servo6.move_time(24000, 3000);
 
-	servo6.move_time(0, 3000);
-	delay(4000);
-	servo6.move_time(24000, 3000);
+	// delay(6000);
 
-	delay(6000);
-
-	servo1.move_time(0, 3000);
-	delay(4000);
-	servo1.move_time(16000, 3000);
-	delay(4000);
-	servo1.move_time(8000, 3000);
+	// servo1.move_time(0, 3000);
+	// delay(4000);
+	// servo1.move_time(16000, 3000);
+	// delay(4000);
+	// servo1.move_time(8000, 3000);
 
 	delay(6000);
 	int id = 0;
 	int temp = 0;
 	int volt = 0;
 
-	id = servo1.id_read(1);
-	temp = servo1.temp();
-	volt = servo1.vin();
+	id = servo6.id_read(6);
+	temp = servo6.temp();
+	volt = servo6.vin();
 
 	Serial.println("ID is: ");
 	Serial.println(String(id));
@@ -63,22 +92,6 @@ void loop() {
 // 		pos = servo.pos_read();
 // 		Serial.printf("\n\nPosition at %d -> %s\n", pos, servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
 
-// 		//do {
-// 			servo.move_time(angle, 10*divisor);
-// 		//} while (!servo.isCommandOk());
-// //		Serial.printf("Move to %d -> %s\n", angle,
-// //				servo.isCommandOk() ? "OK" : "\n\nERR!!\n\n");
-// //		Serial.println("Voltage = " + String(servo.vin()));
-// //		Serial.println("Temp = " + String(servo.temp()));
-// //		Serial.println("ID  = " + String(servo.id_read()));
-// //		Serial.println("Motor Mode  = " + String(servo.readIsMotorMode()));
-// 		long took = millis()-start;
-// 		long time = (10*divisor)-took;
-// 		if(time>0)
-// 			delay(time);
-// 		else{
-// 			Serial.println("Real Time broken, took: "+String(took));
-// 		}
 // 	}
 	if (done_flag == false) {
 		Serial.println("Starting moving procedure.");
