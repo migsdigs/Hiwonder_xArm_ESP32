@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
-#include "trajectory_msgs/JointTrajectory.h"
 #include "geometry_msgs/Pose.h"
+#include "trajectory_msgs/JointTrajectory.h"
 
 namespace gazebo_msgs
 {

@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include "ros/msg.h"
-#include "geographic_msgs/GeoPoint.h"
 #include "geometry_msgs/Point.h"
+#include "geographic_msgs/GeoPoint.h"
 
 namespace robot_localization
 {
