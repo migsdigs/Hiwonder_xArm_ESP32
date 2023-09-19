@@ -3,12 +3,18 @@
 #include <lx16a-servo.h>
 
 #include <WiFi.h>
+#include <iostream>
+#include <string>
 
 // ros includes
 #include <ros.h>
 #include <std_msgs/String.h>
 #include <std_msgs/UInt16.h>
+
 #include <std_msgs/Int16MultiArray.h>
+#include <sensor_msgs/JointState.h>
+#include <std_msgs/Float32MultiArray.h>
+
 
 // Servos and Servo Bus Instantiation
 LX16ABus servoBus;
@@ -19,25 +25,48 @@ LX16AServo servo4(&servoBus, 4); // 0-24000 (0-240 degrees)
 LX16AServo servo5(&servoBus, 5); // 0-24000 (0-240 degrees)
 LX16AServo servo6(&servoBus, 6); // 0-24000 (0-240 degrees)
 
+// Servo position variable
+// int pos1 = 0;
+// int pos2 = 12000;
+// int pos3 = 12000;
+// int pos4 = 12000;
+// int pos5 = 12000;
+// int pos6 = 12000;
+
 // Wifi const
 const char* ssid = "Rogachino";
 const char* password = "12345678";
 
+// const char* servo_names[6] = {"Servo 1", "Servo 2", "Servo 3", "Servo 4", " Servo 5", "Servo 6"};
+
 bool LED_status = true;
 
 
-
 char hello[13] = "hello world!";
-std_msgs::String str_msg;
-std_msgs::Int16MultiArray servo_position_array;
 
+
+// ROS node handler
+ros::NodeHandle nh;
+
+std_msgs::String str_msg;
+std_msgs::UInt16 servo1_pos_msg;
+sensor_msgs::JointState servo_position_array_msg;
+// std_msgs::Float32MultiArray float32_array_msg;
+
+// servo_position_array_msg Jointstate message components 
+char *name[] = {"Servo_1", "Servo_2", "Servo_3", "Servo_4", "Servo_5", "Servo_6"};
+
+float pos[] = {0, 0, 0, 0, 0, 0};
+
+
+uint16_t pos1_test = 123; // just for testing
 
 // ROS publishers
 ros::Publisher chatter("chatter", &str_msg); 							// to check if serial is working
-ros::Publisher servo_pos_pub("servo_positions", &servo_position_array);	// servo positions publisher
+ros::Publisher servo_pos_pub("servo_positions", &servo_position_array_msg);	// servo positions publisher
+// ros::Publisher servo1_pos_pub("servo1_position", &servo1_pos_msg);
 
-
-
+// Callbacks
 void servo_callback(const std_msgs::Int16MultiArray& cmd_msg) {
 	str_msg.data = hello;
 	chatter.publish( &str_msg );
@@ -75,8 +104,6 @@ void servo_callback(const std_msgs::Int16MultiArray& cmd_msg) {
 	Serial.println("Executing move command on servo.");
 }
 
-// ROS node handler
-ros::NodeHandle nh;
 
 
 
@@ -90,14 +117,15 @@ void setup() {
 
 	// ROS chatter publisher
 	nh.initNode();
+	
 
 	// Publishers (advertise)
 	nh.advertise(chatter);
 	nh.advertise(servo_pos_pub);
+	// nh.advertise(servo1_pos_pub);
 
 	// Subscribers
 	nh.subscribe(sub_servo);
-
 
 
 	// LED
@@ -125,15 +153,16 @@ void setup() {
 	Serial.println("Beginning Servo Example");
 	servoBus.beginOnePinMode(&Serial2,33);
 	servoBus.debug(true);
-	servoBus.retry=1;
+	servoBus.retry=1;	
 
 	// Reset the servo positions
-	servo1.move_time(0,3000);
-	servo2.move_time(12000,3000);
-	servo3.move_time(12000,3000);
-	servo4.move_time(12000,3000);
-	servo5.move_time(12000,3000);
-	servo6.move_time(12000,3000);
+	servo1.move_time(4000,3000);
+	servo2.move_time(11000,3000);
+	servo3.move_time(13000,3000);
+	servo4.move_time(11000,3000);
+	servo5.move_time(13000,3000);
+	servo6.move_time(11000,3000);
+	
 	
 
 	// int pos = 123;
@@ -157,14 +186,32 @@ void setup() {
 	// Serial.println("Servo V_in is: ");
 	// Serial.println(String(volt));
 
-	// Doesnt work ATM
-	// servo.readLimits();
 }
 
-void loop() {
+void loop() {	
+
+
+	// int16_t servo_pos_array[6] = {pos1, pos2, pos3, pos4, pos5, pos6};
 	
+
+	pos[0] = servo1.vin();
+	pos[1] = servo2.vin();
+	pos[2] = servo3.vin();
+	pos[3] = servo4.vin();
+	pos[4] = servo5.vin();
+	pos[5] = servo6.vin();
+
+	servo_position_array_msg.name = name;
+	servo_position_array_msg.position = pos;
+	servo_position_array_msg.name_length = 6;
+	servo_position_array_msg.position_length = 6;
+	servo_pos_pub.publish(&servo_position_array_msg);
+
+	// servo1_pos_msg.data = servo1.temp();
+	// servo1_pos_pub.publish(&servo1_pos_msg); 
+
 	nh.spinOnce();
-	delay(1);
+	delay(10);
 	
 
 }
