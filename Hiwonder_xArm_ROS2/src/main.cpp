@@ -13,11 +13,11 @@
 
 // ROS msg includes
 #include <std_msgs/msg/int64_multi_array.h>
+#include <std_msgs/msg/int16_multi_array.h>
 #include <std_msgs/msg/multi_array_dimension.h>
 #include <std_msgs/msg/string.h>
 #include <sensor_msgs/msg/joint_state.h>
 #include <std_msgs/msg/int32.h>
-#include <geometry_msgs/msg/pose_array.h>
 
 #include <rosidl_runtime_c/string.h>
 #include <rosidl_runtime_c/string_functions.h>
@@ -45,11 +45,11 @@ LX16AServo servo6(&servoBus, 6); // 0-24000 (0-240 degrees)
 rosidl_runtime_c__String__Sequence name__string_sequence;
 
 // // Array to hold latest read servo parameters
-// double vin[6] = {0, 0, 0, 0, 0, 0};				// servo voltages
-// double temp[6] = {0, 0 ,0 ,0 ,0 ,0}; 			// servo temperatures
+int16_t vin[6] = {0, 0, 0, 0, 0, 0};				// servo voltages
+int16_t temp[6] = {0, 0 ,0 ,0 ,0 ,0}; 			// servo temperatures
 
-int8_t v_in_cached[6] = {0,0,0,0,0,0};
-int8_t temp_cached[6] = {0,0,0,0,0,0};
+int16_t v_in_cached[6] = {0,0,0,0,0,0};
+int16_t temp_cached[6] = {0,0,0,0,0,0};
 
 // Array to populate JointState message for Servo positions
 double pos[6] = {0, 0, 0, 0, 0, 0};				// servo positions
@@ -60,9 +60,14 @@ double vel[] = {0, 0, 0, 0, 0, 0};				// velocity array "  "
 static const uint16_t timer_divider = 80;
 static const uint64_t timer_max_count = 500000;
 
+static const uint16_t timer_divider_2 = 80;
+static const uint64_t timer_max_count_2 = 5000000;
+
 static hw_timer_t *timer = NULL;
+static hw_timer_t *timer2 = NULL;
 
 bool publish_servo_pos_flag = false;
+bool publish_temp_and_volt_flag = true;
 
 
 rcl_node_t node_hiwonder;	// Node object
@@ -70,6 +75,8 @@ rcl_node_t node_hiwonder;	// Node object
 // Publisher and Subscriber objects
 rcl_publisher_t 	publisher;
 rcl_publisher_t 	publisher_servo_pos;
+rcl_publisher_t		publisher_servo_vin;
+rcl_publisher_t 	publisher_servo_temp;
 
 rcl_subscription_t 	subscriber;
 rcl_subscription_t 	subscriber_one_servo_cmd;
@@ -87,6 +94,8 @@ rcl_wait_set_t 	wait_set;
 rclc_executor_t executor;
 rclc_executor_t executor_subscriber;
 rclc_executor_t executor_servo_pos_publish;
+rclc_executor_t executor_servo_vin_publish;
+rclc_executor_t executor_servo_temp_publish;
 rclc_executor_t executor_single_servo_cmd_sub;
 rclc_executor_t executor_multi_servo_move_cmd_sub;
 
@@ -111,25 +120,31 @@ std_msgs__msg__Int32 msg;
 std_msgs__msg__Int64MultiArray single_servo_cmd_msg_in;
 std_msgs__msg__Int64MultiArray multi_servo_cmd_msg_in;
 
-
-// example_interfaces__srv__AddTwoInts_Response res;
-// example_interfaces__srv__AddTwoInts_Request req;
+std_msgs__msg__Int16MultiArray servo_voltages_msg;
+std_msgs__msg__Int16MultiArray servo_temps_msg;
 
 
 // =====================================================================================================
 // INTERUPT SERVICE ROUTINES
 // =====================================================================================================
 
+// Timer for changing the servo pos. publish flag
 void IRAM_ATTR onTimer() {
 	// Toggle LED
 	int pin_state = digitalRead(LED_BUILTIN);
-	digitalWrite(LED_BUILTIN, !pin_state);
+	digitalWrite(LED_BUILTIN, !pin_state); 
 
 	publish_servo_pos_flag = true;
-
-	
 }
 
+// Timer for changing the servo temp and volt publish flag
+void IRAM_ATTR onTimer2() {
+	// Toggle LED
+	int pin_state = digitalRead(22);
+	digitalWrite(22, !pin_state);
+
+	publish_temp_and_volt_flag = true;
+}
 
 // =====================================================================================================
 // CALLBACKS
@@ -241,11 +256,19 @@ void setup() {
 	delay(250);
 	digitalWrite(LED_BUILTIN, HIGH);
 
+	pinMode(22, OUTPUT);
+	digitalWrite(22, HIGH);
+	delay(250);
+	digitalWrite(22, LOW);
+	delay(250);
+	digitalWrite(22, HIGH);
+
 
 	// =====================================================================================================
     // TIMER SETUP
     // =====================================================================================================
 
+	// Timer 1. (publish position at faster rate)
 	// Create and start timer (num, divider, countUp)
 	timer = timerBegin(0, timer_divider, true);
 
@@ -257,6 +280,20 @@ void setup() {
 
 	// Allow ISR to trigger
 	timerAlarmEnable(timer);
+
+
+	// Timer 2. (publish v_in and temp every +- 5 seconds)
+	// Create and start timer (num, divider, countUp)
+	timer2 = timerBegin(1, timer_divider_2, true);
+
+	// Provide ISR to timer (timer, function, edge)
+	timerAttachInterrupt(timer2, &onTimer2, true);
+
+	// At what count should ISR trigger (timer, count, autoreload)
+	timerAlarmWrite(timer2, timer_max_count_2, true);
+
+	// Allow ISR to trigger
+	timerAlarmEnable(timer2);
 
 
 	// =====================================================================================================
@@ -286,23 +323,25 @@ void setup() {
 	pos[5] = servo6.pos_read();
 	delay(1000);
 
-	// // Read in servo voltages
-	// vin[0] = servo1.vin();
-	// vin[1] = servo2.vin();
-	// vin[2] = servo3.vin();
-	// vin[3] = servo4.vin();
-	// vin[4] = servo5.vin();
-	// vin[5] = servo6.vin();
-	// delay(1000);
+	// Read in servo voltages
+	v_in_cached[0] = servo1.vin();
+	v_in_cached[1] = servo2.vin();
+	v_in_cached[2] = servo3.vin();
+	v_in_cached[3] = servo4.vin();
+	v_in_cached[4] = servo5.vin();
+	v_in_cached[5] = servo6.vin();
+	delay(1000);
 
-	// // Read in servo temperatures
-	// temp[0] = servo1.temp();
-	// temp[1] = servo2.temp();
-	// temp[2] = servo3.temp();
-	// temp[3] = servo4.temp();
-	// temp[4] = servo5.temp();
-	// temp[5] = servo6.temp();
-	// delay(1000);
+	// Read in servo temperatures
+	temp_cached[0] = servo1.temp();
+	temp_cached[1] = servo2.temp();
+	temp_cached[2] = servo3.temp();
+	temp_cached[3] = servo4.temp();
+	temp_cached[4] = servo5.temp();
+	temp_cached[5] = servo6.temp();
+	delay(1000);
+
+	delay(1000);
 
 
 	// =====================================================================================================
@@ -324,12 +363,26 @@ void setup() {
     // PUBLISHERS
     // =====================================================================================================
 
-	// Servo position publisher (publishes at a rate of 100 Hz)
+	// Servo position publisher (publishes at a rate of X Hz)
 	RCCHECK(rclc_publisher_init_default(
 		&publisher_servo_pos, 
 		&node_hiwonder, 
 		ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState), 
 		"servo_pos_publisher"));
+
+	// Servo voltage publisher (publishes every 5 seconds)
+	RCCHECK(rclc_publisher_init_default(
+		&publisher_servo_vin, 
+		&node_hiwonder, 
+		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16MultiArray), 
+		"servo_volt_publisher"));
+
+	// Servo temperature publisher (publishes every 5 seconds)
+	RCCHECK(rclc_publisher_init_default(
+		&publisher_servo_temp, 
+		&node_hiwonder, 
+		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16MultiArray), 
+		"servo_temp_publisher"));
 
 
 	// =====================================================================================================
@@ -361,7 +414,7 @@ void setup() {
     // =====================================================================================================
 
 	// (1) servo_position_array_msg
-	// Assigning dynamic memory to the name string sequence (this is not working)
+	// Assigning dynamic memory to the name string sequence 
 
 	bool success = rosidl_runtime_c__String__Sequence__init(&name__string_sequence, 6);
 	servo_position_array_msg.name = name__string_sequence;
@@ -438,12 +491,44 @@ void setup() {
 	}
 
 
+	// (4) servo_voltages_msg
+	servo_voltages_msg.data.capacity = 6;
+	servo_voltages_msg.data.size = 6;
+	servo_voltages_msg.data.data = (int16_t*) malloc(servo_voltages_msg.data.capacity * sizeof(int16_t));
+
+	servo_voltages_msg.layout.dim.capacity = 3;
+	servo_voltages_msg.layout.dim.size = 0;
+	servo_voltages_msg.layout.dim.data = (std_msgs__msg__MultiArrayDimension*) malloc(servo_voltages_msg.layout.dim.capacity * sizeof(std_msgs__msg__MultiArrayDimension));
+
+	for(size_t i = 0; i < servo_voltages_msg.layout.dim.capacity; i++){
+		servo_voltages_msg.layout.dim.data[i].label.capacity = 10;
+		servo_voltages_msg.layout.dim.data[i].label.size = 0;
+		servo_voltages_msg.layout.dim.data[i].label.data = (char*) malloc(servo_voltages_msg.layout.dim.data[i].label.capacity * sizeof(char));
+	}
+
+	// (5) servo_temps_msg
+	servo_temps_msg.data.capacity = 6;
+	servo_temps_msg.data.size = 6;
+	servo_temps_msg.data.data = (int16_t*) malloc(servo_temps_msg.data.capacity * sizeof(int16_t));
+
+	servo_temps_msg.layout.dim.capacity = 3;
+	servo_temps_msg.layout.dim.size = 0;
+	servo_temps_msg.layout.dim.data = (std_msgs__msg__MultiArrayDimension*) malloc(servo_temps_msg.layout.dim.capacity * sizeof(std_msgs__msg__MultiArrayDimension));
+
+	for(size_t i = 0; i < servo_temps_msg.layout.dim.capacity; i++){
+		servo_temps_msg.layout.dim.data[i].label.capacity = 10;
+		servo_temps_msg.layout.dim.data[i].label.size = 0;
+		servo_temps_msg.layout.dim.data[i].label.data = (char*) malloc(servo_temps_msg.layout.dim.data[i].label.capacity * sizeof(char));
+	}
+
 	// =====================================================================================================
     // EXECUTORS
     // =====================================================================================================
 
 	// init executors
 	RCCHECK(rclc_executor_init(&executor_servo_pos_publish, &support.context, 1, &allocator));			// executor for publishing servo pos.
+	RCCHECK(rclc_executor_init(&executor_servo_vin_publish, &support.context, 1, &allocator));			// executor for publishing servo pos.
+	RCCHECK(rclc_executor_init(&executor_servo_temp_publish, &support.context, 1, &allocator));			// executor for publishing servo pos.
 	// RCCHECK(rclc_executor_init(&executor_single_servo_cmd_sub, &support.context, 1, &allocator));		// executor for one servo cmd subscriber
 	RCCHECK(rclc_executor_init(&executor_multi_servo_move_cmd_sub, &support.context, 1, &allocator));	// executor for multi servo cmd subscriber
 
@@ -484,6 +569,53 @@ void loop() {
 		publish_servo_pos_flag = false;
 	}
 
+	if (publish_temp_and_volt_flag == true) {
+		// Read servo voltages
+		vin[0] = servo1.vin();
+		vin[1] = servo2.vin();
+		vin[2] = servo3.vin();
+		vin[3] = servo4.vin();
+		vin[4] = servo5.vin();
+		vin[5] = servo6.vin();
+		delay(10);
+
+		if (vin[0] != 0) v_in_cached[0] = vin[0];
+		if (vin[1] != 0) v_in_cached[1] = vin[1];
+		if (vin[2] != 0) v_in_cached[2] = vin[2];
+		if (vin[3] != 0) v_in_cached[3] = vin[3];
+		if (vin[4] != 0) v_in_cached[4] = vin[4];
+		if (vin[5] != 0) v_in_cached[5] = vin[5];
+
+		// Give msg new data
+		servo_voltages_msg.data.data = v_in_cached;
+		
+
+		// Read servo temps
+		temp[0] = servo1.temp();
+		temp[1] = servo2.temp();
+		temp[2] = servo3.temp();
+		temp[3] = servo4.temp();
+		temp[4] = servo5.temp();
+		temp[5] = servo6.temp();
+		delay(10);
+
+		if (temp[0] != 0) temp_cached[0] = temp[0];
+		if (temp[1] != 0) temp_cached[1] = temp[1];
+		if (temp[2] != 0) temp_cached[2] = temp[2];
+		if (temp[3] != 0) temp_cached[3] = temp[3];
+		if (temp[4] != 0) temp_cached[4] = temp[4];
+		if (temp[5] != 0) temp_cached[5] = temp[5];
+
+		// Give msg new data
+		servo_temps_msg.data.data = temp_cached;
+
+		// Publish messages
+		RCSOFTCHECK(rcl_publish(&publisher_servo_vin, &servo_voltages_msg, NULL));
+		RCSOFTCHECK(rcl_publish(&publisher_servo_temp, &servo_temps_msg, NULL));
+
+		publish_temp_and_volt_flag = false;
+	}
+
 	delay(5);
 
 	// Subscribers added to spin
@@ -499,44 +631,3 @@ void loop() {
 // 											END IT ALL													 // 
 //																										 //
 // ===================================================================================================== //
-
-// #include <micro_ros_platformio.h>
-// // #include <example_interfaces/srv/add_two_ints.h>
-// #include <stdio.h>
-// #include <rcl/error_handling.h>
-// #include <rclc/rclc.h>
-// #include <rclc/executor.h>
-// #include <std_msgs/msg/int64.h>
-
-// rcl_node_t node;
-// rclc_support_t support;
-// rcl_allocator_t allocator;
-// rclc_executor_t executor;
-
-// rcl_service_t service;
-// rcl_wait_set_t wait_set;
-
-// // example_interfaces__srv__AddTwoInts_Response res;
-// // example_interfaces__srv__AddTwoInts_Request req;
-
-// #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){while(1){};}}
-// #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
-
-// // void service_callback(const void * req, void * res){
-// //   example_interfaces__srv__AddTwoInts_Request * req_in = (example_interfaces__srv__AddTwoInts_Request *) req;
-// //   example_interfaces__srv__AddTwoInts_Response * res_in = (example_interfaces__srv__AddTwoInts_Response *) res;
-
-// //   //printf("Service request value: %d + %d.\n", (int) req_in->a, (int) req_in->b);
-
-// //   res_in->sum = req_in->a + req_in->b;
-// // }
-
-// void setup() {
-
-// }
-
-
-// void loop() {
-//   delay(100);
-//   RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
-// }
