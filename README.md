@@ -18,9 +18,19 @@ Author: [Miguel Garcia Naude](https://github.com/migsdigs)
 * Hiwonder xArm ESP32
 * ESP32-DevKitC-32e
 
-Some Caption    | Another Caption
+Front View    | Side View
 ------------- | -------------
-![picture alt]( "Pic1")  | ![picture alt]( "Pic2")
+![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/hiwonder_arm_numbered.jpg "Front View with Servos Numbered")  | ![picture alt]( "Pic2")
+
+
+| Servo Number | Model | Range (deg.) | Rotation Speed | Parameter Feedback |
+| ----------- | ----------- | ----------- | ----------- | ----------- |
+| 1 | ID1 Servo | 160 deg. | 0.39 sec/60deg | Position, Temperture, Voltage |
+| 2 | LX-15D Servo | 240 deg. | 0.22 sec/60deg | Position, Temperture, Voltage |
+| 3 | LX-15D Servo | 240 deg. | 0.22 sec/60deg | Position, Temperture, Voltage |
+| 4 | LX-15D Servo | 240 deg. | 0.22 sec/60deg | Position, Temperture, Voltage |
+| 5 | LX-225 Servo | 240 deg. | 0.23 sec/60deg | Position, Temperture, Voltage |
+| 6 | LX-15D Servo | 240 deg. | 0.22 sec/60deg | Position, Temperture, Voltage |
 
 ---
 
@@ -103,4 +113,81 @@ miguel_u22@miguelpc:~$ ros2 topic list
 ```
 
 #### Moving the servos
-The position of the servos can be controlled using the `/multi_servo_cmd_sub` topic. Any number of servos can be moved at once by specifying the disired servo angle (centi-degrees) and the time (milli-seconds) for the servos to carry out this command.
+The position of the servos can be controlled using the `/multi_servo_cmd_sub` topic. Any number of servos can be moved at once by specifying the disired servo angle (centi-degrees) and the time (milli-seconds) for the servos to carry out this command. The publish message from the terminal is structured as follows:
+```bash
+ros2 topic pub /multi_servo_cmd_sub --once std_msgs/Int64MultiArray "{layout: {dim: [{label: '', size: 0, stride: 0}], data_offset: 0}, data: [12000,12000,12000,12000,12000,12000,500,500,500,500,500,500]}"
+```
+
+The data component of the message contains the desired servo positions and the move time. It should always contain 12 integer entries. To be more clear it is structured as follows:
+
+`data:[servo1_desired_pos, servo2_desired_pos, ... , servo6_desired_pos, servo1_move_time, ... , servo6_move_time].` 
+In this particular case, servos 2-6 are set to their middle position (120 deg) and the arm moves upright in 500 ms.
+
+The servos will only move if a positive position is given, and if a position is given outside of a servo angular range, the servo will move to its limit. For instance, to move only servo 1 and servo 3, one could give the following:
+
+`ros2 topic pub /multi_servo_cmd_sub --once std_msgs/Int64MultiArray "{layout: {dim: [{label: '', size: 0, stride: 0}], data_offset: 0}, data: [7000,-1,2000,-1,-1,-1,500,500,500,500,500,500]}"`
+
+**Post GIF here**
+
+
+#### Reading from the servos
+As is shown in the table, **Position, Temperature** & **Voltage** can be read from the servos. Voltage and temperature are published on start-up and then every 5 seconds, while servo positions are published at approximately 25 Hz.
+
+1. `/servo_pos_publisher` - publishes servo positions in a JointState message, that includes the servo numbers, positions and time stamps.
+   run `ros2 topic echo /servo_pos_publisher` and observe the published servo positions.
+   ```
+   header:
+   stamp:
+     sec: 67
+     nanosec: 3297586560
+   frame_id: frame id
+   name:
+   - Servo1
+   - Servo2
+   - Servo3
+   - Servo4
+   - Servo5
+   - Servo6
+   position:
+   - 15120.0
+   - 11952.0
+   - 12048.0
+   - 11952.0
+   - 11904.0
+   - 11952.0
+   ...
+   ```
+   
+2. `/servo_temp_publisher` - publishes the servo temperature as a Int16MultiArray message. The data is structured as such: `data:[servo1_temp, servo2_temp, ... , servo6_temp]`.
+   run `ros2 topic echo /servo_temp_publisher` and observe the published servo temperatures.
+   ```
+   layout:
+   dim: []
+   data_offset: 0
+   data:
+   - 47
+   - 28
+   - 33
+   - 29
+   - 31
+   - 27
+   ---
+   ```
+
+3. `/servo_volt_publisher` - publishes the servo input voltage (milli-volts) as a Int16MultiArray message. The data is structured as such: `data:[servo1_vin, servo2_vin, ... , servo6_vin]`.
+   run `ros2 topic echo /servo_temp_publisher` and observe the published servo input voltages.
+   ```
+   layout:
+     dim: []
+     data_offset: 0
+   data:
+   - 7607
+   - 7629
+   - 7629
+   - 7585
+   - 7618
+   - 7583
+   ---
+   ```
+
+
