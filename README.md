@@ -127,8 +127,6 @@ The servos will only move if a positive position is given, and if a position is 
 
 `ros2 topic pub /multi_servo_cmd_sub --once std_msgs/Int64MultiArray "{layout: {dim: [{label: '', size: 0, stride: 0}], data_offset: 0}, data: [7000,-1,2000,-1,-1,-1,500,500,500,500,500,500]}"`
 
-**Post GIF here**
-
 
 #### Reading from the servos
 As is shown in the table, **Position, Temperature** & **Voltage** can be read from the servos. Voltage and temperature are published on start-up and then every 5 seconds, while servo positions are published at approximately 25 Hz.
@@ -158,8 +156,11 @@ As is shown in the table, **Position, Temperature** & **Voltage** can be read fr
    ...
    ```
    
-2. `/servo_temp_publisher` - publishes the servo temperature as a Int16MultiArray message. The data is structured as such: `data:[servo1_temp, servo2_temp, ... , servo6_temp]`.
-   run `ros2 topic echo /servo_temp_publisher` and observe the published servo temperatures.
+2. `/servo_temp_publisher` - publishes the servo temperature as a Int16MultiArray message. The data is structured as such:
+   
+   `data:[servo1_temp, servo2_temp, ... , servo6_temp]`.
+
+   Run `ros2 topic echo /servo_temp_publisher` and observe the published servo temperatures.
    ```
    layout:
    dim: []
@@ -174,8 +175,11 @@ As is shown in the table, **Position, Temperature** & **Voltage** can be read fr
    ---
    ```
 
-3. `/servo_volt_publisher` - publishes the servo input voltage (milli-volts) as a Int16MultiArray message. The data is structured as such: `data:[servo1_vin, servo2_vin, ... , servo6_vin]`.
-   run `ros2 topic echo /servo_temp_publisher` and observe the published servo input voltages.
+3. `/servo_volt_publisher` - publishes the servo input voltage (milli-volts) as a Int16MultiArray message. The data is structured as such:
+   
+   `data:[servo1_vin, servo2_vin, ... , servo6_vin]`.
+   
+   Run `ros2 topic echo /servo_temp_publisher` and observe the published servo input voltages.
    ```
    layout:
      dim: []
