@@ -20,7 +20,7 @@ Author: [Miguel Garcia Naude](https://github.com/migsdigs)
 
 Front View    | Side View
 ------------- | -------------
-![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/hiwonder_arm_numbered.jpg "Front View with Servos Numbered")  | ![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/hiwonder_arm_2.jpeg "Pic2")
+![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/hiwonder_arm_numbered.jpg "Front View with Servos Numbered")  | ![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/hiwonder_arm_2.jpeg "Side View")
 
 
 | Servo Number | Model | Range (deg.) | Rotation Speed | Parameter Feedback |
@@ -31,6 +31,12 @@ Front View    | Side View
 | 4 | LX-15D Servo | 240 deg. | 0.22 sec/60deg | Position, Temperture, Voltage |
 | 5 | LX-225 Servo | 240 deg. | 0.23 sec/60deg | Position, Temperture, Voltage |
 | 6 | LX-15D Servo | 240 deg. | 0.22 sec/60deg | Position, Temperture, Voltage |
+
+### Electronics Setup
+
+![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/electronic_config.jpg "Electronics Setup")
+
+Servos can be daisy chained together. Thus all six servos may be chained together and connected as a single pin at GPIO pin 33 on the ESP32. It was found that the system experiences communication errors with the servos regularly when more than three servos are daisy chained together. As such they can be connected in parallel at pin 33. Two pairs of three chained servos are thus connected in parallel to pin 33.
 
 ---
 
