@@ -123,6 +123,8 @@ The data component of the message contains the desired servo positions and the m
 `data:[servo1_desired_pos, servo2_desired_pos, ... , servo6_desired_pos, servo1_move_time, ... , servo6_move_time].` 
 In this particular case, servos 2-6 are set to their middle position (120 deg) and the arm moves upright in 500 ms.
 
+If the servos do not move following this command, kinda see the [Issues](https://github.com/migsdigs/Hiwonder_xArm_ESP32/edit/main/Hiwonder_xArm_ROS2/SETUP_README.md#issues) section in the install readme.
+
 The servos will only move if a positive position is given, and if a position is given outside of a servo angular range, the servo will move to its limit. For instance, to move only servo 1 and servo 3, one could give the following:
 
 `ros2 topic pub /multi_servo_cmd_sub --once std_msgs/Int64MultiArray "{layout: {dim: [{label: '', size: 0, stride: 0}], data_offset: 0}, data: [7000,-1,2000,-1,-1,-1,500,500,500,500,500,500]}"`
