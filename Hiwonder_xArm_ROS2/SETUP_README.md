@@ -8,13 +8,30 @@ Some notes:
 ## Dependencies & Build
 The development environment used for this was the VS Code IDE with the [PlatformIO extension](https://platformio.org/install/ide?install=vscode). Prior to continuing please add this extension to your VS code environment (and install [VS Code](https://code.visualstudio.com/) or some other PlatformIO compatible IDE).
 
-
 Clone this repository:
 ```bash
 cd
 mkdir hiwonder_xArm_ws
 git clone https://github.com/migsdigs/Hiwonder_xArm_ESP32.git
 ```
+
+Open the project in the PlatformIO environment, the path to this should be similar to `/home/user_Ubuntu/hiwonder_xArm_ws/Hiwonder_xArm_ESP32/Hiwonder_xArm_ROS2`. Ensure that the environment is correctly configured, by opening the [platformio.ini](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/platformio.ini) file and ensuring it is configured as follows:
+```ini
+[env:nodemcu-32s]
+platform = espressif32@2.0.0
+board = nodemcu-32s
+framework = arduino
+monitor_speed = 115200
+lib_deps = 
+    madhephaestus/lx16a-servo@^0.9.3
+    https://github.com/micro-ROS/micro_ros_platformio
+board_microros_distro = humble
+board_microros_transport = serial
+```
+
+While the board being used is an ESP32-DevKitC-32E, the LX-16a servo driver library functions only for earlier versions of the ESP32 toolchain. The library is verified to work on the NodeMCU-32S development board with the espressif32@2.0.0 toolchain version, and thus we utilize it.
+
+Next we should ensure the installation and configuration of ROS2 and Micro-ROS.
 
 ## ROS2 & Micro-ROS
 The communication from the host machine to the ESP32 is done using micro-ROS and ROS2 nodes. [ROS2 Humble Hawksbill](https://docs.ros.org/en/humble/index.html) due to its its distant EOL.
@@ -30,6 +47,7 @@ with the [core-tutorials](https://micro.ros.org//docs/tutorials/core/overview/) 
 If you experience difficulties when testing the micro-ROS app in the "First micro-ROS Application in Linux" tutorial, it is likely due to [configuration settings](https://github.com/migsdigs/Hiwonder_xArm_ESP32/edit/main/Hiwonder_xArm_ROS2/SETUP_README.md#2-ros2-installation---configuration-settings) in the ROS2 installation.
 
 
+## Flash the ESP32
 
 ## Issues
 ### 1. Read/write permissions on the serial line.
@@ -38,6 +56,6 @@ If you experience difficulties when testing the micro-ROS app in the "First micr
 
 ### 3. Micro-ROS installation
 
-### 4. Servo Drivers Library and ESP32 Toolchain
+### 4. Servos not moving (LX-16a Servo Library & ESP32 Toolchain)
 
 ### 5. ROS2 Micro-ROS timers on ESP32
