@@ -20,7 +20,7 @@ Author: [Miguel Garcia Naude](https://github.com/migsdigs)
 
 Front View    | Side View
 ------------- | -------------
-![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/hiwonder_arm_numbered.jpg "Front View with Servos Numbered")  | ![picture alt]( "Pic2")
+![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/hiwonder_arm_numbered.jpg "Front View with Servos Numbered")  | ![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/hiwonder_arm_2.jpeg "Pic2")
 
 
 | Servo Number | Model | Range (deg.) | Rotation Speed | Parameter Feedback |
@@ -126,6 +126,11 @@ In this particular case, servos 2-6 are set to their middle position (120 deg) a
 The servos will only move if a positive position is given, and if a position is given outside of a servo angular range, the servo will move to its limit. For instance, to move only servo 1 and servo 3, one could give the following:
 
 `ros2 topic pub /multi_servo_cmd_sub --once std_msgs/Int64MultiArray "{layout: {dim: [{label: '', size: 0, stride: 0}], data_offset: 0}, data: [7000,-1,2000,-1,-1,-1,500,500,500,500,500,500]}"`
+
+
+Pick Up Object    | Wave
+------------- | -------------
+![Alt Text](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/ezgif.com-video-to-gif.gif) | ![Alt Text](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/wave.gif)
 
 
 #### Reading from the servos
