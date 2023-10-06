@@ -8,7 +8,7 @@
 **For the setup of the environemnt, including ROS2 installation, micro-ROS installation and setup of the IDE please see the [Setup README](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/SETUP_README.md).**
 
 
-**Test System: Ubuntu 22.04 on WSL, ROS2 Humble Hawksbill, Micro-ROS, ESP32-DevkitC-32e**
+### **Test System: Ubuntu 22.04 on WSL, ROS2 Humble Hawksbill, Micro-ROS, ESP32-DevkitC-32E with PlatformIO in VS Code as the dev environment**
 
 Author: [Miguel Garcia Naude](https://github.com/migsdigs)
 
