@@ -42,12 +42,80 @@ and [creating a workspace](https://docs.ros.org/en/humble/Tutorials/Beginner-Cli
 When configuring the environment it is important to set the ROS domain ID to 0, and to ignore the setting of the ROS_LOCAL_HOST environment variable, as this will avoid conflicts with micro-ROS.
 
 For the micro-ROS installation, one should refer to [micro-ROS porting to ESP32](https://micro.ros.org/blog/2020/08/27/esp32/) and its related pages. One should thus proceed
-with the [core-tutorials](https://micro.ros.org//docs/tutorials/core/overview/) or at the very least complete the [First micro-ROS application on Linux](https://micro.ros.org//docs/tutorials/core/first_application_linux/) to ensure that the micro-ROS is installed and running accordingly, and then look at the [Teensy with Arduino](https://micro.ros.org//docs/tutorials/core/teensy_with_arduino/) tutorial. 
+with the [core-tutorials](https://micro.ros.org//docs/tutorials/core/overview/) or at the very least complete the [First micro-ROS application on Linux](https://micro.ros.org//docs/tutorials/core/first_application_linux/) to ensure that the micro-ROS is installed and running accordingly. 
 
-If you experience difficulties when testing the micro-ROS app in the "First micro-ROS Application in Linux" tutorial, it is likely due to [configuration settings](https://github.com/migsdigs/Hiwonder_xArm_ESP32/edit/main/Hiwonder_xArm_ROS2/SETUP_README.md#2-ros2-installation---configuration-settings) in the ROS2 installation.
+If you experience difficulties when testing the micro-ROS app with the Ping Pong example in the "First micro-ROS Application in Linux" tutorial, it is likely due to [configuration settings](https://github.com/migsdigs/Hiwonder_xArm_ESP32/edit/main/Hiwonder_xArm_ROS2/SETUP_README.md#2-ros2-installation---configuration-settings) in the ROS2 installation.
 
+
+## Configuring Micro-ROS for PlatformIO
+Having ensured that micro-ROS is successfully installed, we will configure it for PlatformIO. For this we shall refer to both the [Teensy with Arduino](https://micro.ros.org/docs/tutorials/core/teensy_with_arduino/) tutorial and the [micro-ROS for PlatformIO](https://github.com/micro-ROS/micro_ros_platformio) repo. Perform the following in a new terminal:
+
+```bash
+# Source the ROS 2 installation
+source /opt/ros/humble/setup.bash
+# Create a workspace and download the micro-ROS tools
+mkdir esp32_microros_ws
+cd esp32_microros_ws
+git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup
+# Update dependencies using rosdep
+sudo apt update && rosdep update
+rosdep install --from-paths src --ignore-src -y
+# Install pip
+sudo apt-get install python3-pip
+
+# Build micro-ROS tools and source them
+colcon build
+source install/local_setup.bash
+```
+
+```bash
+# Download micro-ROS agent packages
+ros2 run micro_ros_setup create_agent_ws.sh
+
+# Build step
+ros2 run micro_ros_setup build_agent.sh
+source install/local_setup.bash
+
+# Perform a dry run
+ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSB0 -v6
+```
+
+That should result in something like:
+```bash
+[1696497991.336987] info | TermiosAgentLinux.cpp | init | Serial port not found. | device: /dev/ttyUSB0, error 2, waiting for connection...
+[1696497992.346918] info | TermiosAgentLinux.cpp | init | Serial port not found. | device: /dev/ttyUSB0, error 2, waiting for connection...
+```
+
+---
+
+Now open your IDE and the PlatformIO environment. In the terminal, begin with:
+```console
+apt install -y git cmake python3-pip
+```
+
+The library should already be included as a git library dependence, but if it is not, add the following to the `platform.ini` file:
+```ini
+...
+lib_deps =
+    https://github.com/micro-ROS/micro_ros_platformio
+```
+
+In the terminal again, run the following, and ensure it is successful:
+```console
+pio lib install # Install dependencies
+pio run # Build the firmware
+pio run --target upload # Flash the firmware
+```
+
+To trigger a library build and apply library modification on the platformIO build, one can run:
+```console
+pio run --target clean_microros  # Clean library
+```
+
+---
 
 ## Flash the ESP32
+
 
 ## Issues
 ### 1. Read/write permissions on the serial line.
