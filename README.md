@@ -32,7 +32,7 @@ Front View    | Side View
 | 5 | LX-225 Servo | 240 deg. | 0.23 sec/60deg | Position, Temperture, Voltage |
 | 6 | LX-15D Servo | 240 deg. | 0.22 sec/60deg | Position, Temperture, Voltage |
 
-### Electronics Setup
+## Electronics Setup
 
 ![picture alt](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/electronic_config.jpg "Electronics Setup")
 
