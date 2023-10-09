@@ -161,7 +161,3 @@ board_microros_transport = serial
 Micro-ROS has build-in functionality for timers and callbacks. Unfortunately, while we require older toolchain for the servo drivers to function, the micro-ROS timers for fail to function properly for the toolchain espressif@2.0.0. As such, we have made use of native ESP timer and interrupt service routines (ISR).
 
 ---
-
-## Resources that maybe be useful in future
-* Hiwonder [xArm ESP32](https://drive.google.com/drive/folders/1byfHmnIkZJo7QB-uKPXycNivOwka033q?usp=drive_link) google drive.
-* Hiwonder [ArmPI FPV](https://drive.google.com/drive/folders/11wl0ss4zelJUnhpM2iadch4rDxFnV4dg?usp=drive_link) google drive.
