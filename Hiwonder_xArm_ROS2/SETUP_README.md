@@ -118,7 +118,7 @@ Micro-ROS dependencies should now be added to the PlatformIO environment.
 
 ## Flash the ESP32
 * Build and Upload the code to the ESP32.
-* The light on GPIO2 should blink twice quickly, and then blink every 500ms.
+* The light on GPIO2 should blink twice, and then rapidly.
 * The light on GPIO22 should blink every 5s.
     
 ---
