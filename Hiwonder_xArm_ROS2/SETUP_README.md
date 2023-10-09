@@ -121,6 +121,7 @@ Micro-ROS dependencies should now be added to the PlatformIO environment.
 * The light on GPIO2 should blink twice quickly, and then blink every 500ms.
 * The light on GPIO22 should blink every 5s.
     
+---
 
 ## Issues
 A few problems were encountered throughout the process of setting up the ESP32 for the Hiwonder xArm. They are listed below, along with some of the suggested solutions.
@@ -135,10 +136,8 @@ or
 sudo chmod a+rw /dev/ttyUSBX # X is the relevant USB number
 ```
 
-### 2. ROS2 Installation - configuration settings
-
-
-### 3. Micro-ROS installation
+### 2. Micro-ROS - ROS2 conflict
+After installing ROS2, one of the recommended tutorials is [configuring environment](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Configuring-ROS2-Environment.html). This sees the setting of a number of environment variables which lead to conflicts when installing micro-ROS, see [github issue](https://github.com/micro-ROS/micro-ROS-demos/issues/78). If you are experiencing issues with communicating with micro-ROS agents, the setting of these environment variables is a possible cause.
 
 ### 4. Servos not moving (LX-16a Servo Library & ESP32 Toolchain)
 The open source drivers for the Hiwonder servos are written to work for older versions of the ESP espressif toolchain. Later versions, for example espressif@4.0.0 which was released with the ESP32-DevKitC dev board, do not work with these drivers and you will experience read/write errors when trying to communicate with the servos. To ensure this does not occur please set up your `.ini` file as follows:
