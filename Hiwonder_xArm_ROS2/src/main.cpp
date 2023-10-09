@@ -58,13 +58,17 @@ double vel[] = {0, 0, 0, 0, 0, 0};				// velocity array "  "
 
 // Timer settings
 static const uint16_t timer_divider = 80;
-static const uint64_t timer_max_count = 500000;
+static const uint64_t timer_max_count = 20000;
 
 static const uint16_t timer_divider_2 = 80;
 static const uint64_t timer_max_count_2 = 5000000;
 
-static hw_timer_t *timer = NULL;
-static hw_timer_t *timer2 = NULL;
+static const uint16_t timer_divider_3 = 80;
+static const uint64_t timer_max_count_3 = 500000;
+
+static hw_timer_t *timer = NULL;		// timer for publishing servos pos.
+static hw_timer_t *timer2 = NULL;		// timer for publishing servos volt & temps
+static hw_timer_t *timer3 = NULL;		// timer for flashing LED every 500ms
 
 bool publish_servo_pos_flag = false;
 bool publish_temp_and_volt_flag = true;
@@ -196,14 +200,6 @@ void IRAM_ATTR onTimer2() {
 void subscription_callback_multi_servo(const void * msgin) {
 	// Move all the servos (dont move if argument is negative)
 	const std_msgs__msg__Int64MultiArray * multi_servo = (const std_msgs__msg__Int64MultiArray *)msgin;
-	digitalWrite(LED_BUILTIN, LOW);
-	delay(200);
-	digitalWrite(LED_BUILTIN,HIGH);
-	delay(200);
-	digitalWrite(LED_BUILTIN, LOW);
-	delay(200);
-	digitalWrite(LED_BUILTIN,HIGH);
-
 
 	if (multi_servo->data.data[0] >= 0) {
 		servo1.move_time(multi_servo->data.data[0], multi_servo->data.data[6]);
@@ -229,13 +225,13 @@ void subscription_callback_multi_servo(const void * msgin) {
 		servo6.move_time(multi_servo->data.data[5], multi_servo->data.data[11]);
 	}
 
-	digitalWrite(LED_BUILTIN, LOW);
-	delay(200);
-	digitalWrite(LED_BUILTIN,HIGH);
-	delay(200);
-	digitalWrite(LED_BUILTIN, LOW);
-	delay(200);
-	digitalWrite(LED_BUILTIN,HIGH);
+	// digitalWrite(LED_BUILTIN, LOW);
+	// delay(200);
+	// digitalWrite(LED_BUILTIN,HIGH);
+	// delay(200);
+	// digitalWrite(LED_BUILTIN, LOW);
+	// delay(200);
+	// digitalWrite(LED_BUILTIN,HIGH);
 }
 
 
@@ -255,8 +251,15 @@ void setup() {
 	digitalWrite(LED_BUILTIN, LOW);
 	delay(250);
 	digitalWrite(LED_BUILTIN, HIGH);
+	digitalWrite(LED_BUILTIN, LOW);
+	delay(250);
+	digitalWrite(LED_BUILTIN, HIGH);
 
 	pinMode(22, OUTPUT);
+	digitalWrite(22, HIGH);
+	delay(250);
+	digitalWrite(22, LOW);
+	delay(250);
 	digitalWrite(22, HIGH);
 	delay(250);
 	digitalWrite(22, LOW);
@@ -451,7 +454,7 @@ void setup() {
 	servo_position_array_msg.header.frame_id.size = 0;
 
 	// Assigning value to the frame_id char sequence
-	strcpy(servo_position_array_msg.header.frame_id.data, "frame id");
+	strcpy(servo_position_array_msg.header.frame_id.data, "Hiwonder xArm");
 	servo_position_array_msg.header.frame_id.size = strlen(servo_position_array_msg.header.frame_id.data);
 
 	// Assigning time stamp
@@ -625,9 +628,3 @@ void loop() {
 }
 
 
-
-// ===================================================================================================== //
-//																										 //
-// 											END IT ALL													 // 
-//																										 //
-// ===================================================================================================== //
