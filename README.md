@@ -211,3 +211,7 @@ As is shown in the table, **Position, Temperature** & **Voltage** can be read fr
    ```
 
 
+## Resources that maybe be useful in future
+* Hiwonder [xArm ESP32](https://drive.google.com/drive/folders/1byfHmnIkZJo7QB-uKPXycNivOwka033q?usp=drive_link) google drive.
+* Hiwonder [ArmPI FPV](https://drive.google.com/drive/folders/11wl0ss4zelJUnhpM2iadch4rDxFnV4dg?usp=drive_link) google drive.
+
