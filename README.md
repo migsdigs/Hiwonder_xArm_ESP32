@@ -109,6 +109,10 @@ source install/setup.bash
    ```
   The agent is now running, and we can begin communicating with the ESP32 via ROS2 to control the servos.
 
+  **Before proceeding, cut power to the servos and then restore it, to restart them.** I have found that this gives better responsiveness and less likely for the servos to fail on read or write commands.
+
+---
+
 #### ROS Topics (might need to update)
 Running `ros2 topic list`, the available ROS2 topics should be listed.
 ```bash
