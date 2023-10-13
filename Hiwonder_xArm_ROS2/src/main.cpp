@@ -6,7 +6,7 @@
 
 // ROS Includes
 #include <micro_ros_platformio.h>
-#include <rclc/rclc.h>
+#include <rcl/rcl.h>
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
@@ -63,15 +63,33 @@ static const uint64_t timer_max_count = 20000;
 static const uint16_t timer_divider_2 = 80;
 static const uint64_t timer_max_count_2 = 5000000;
 
-static const uint16_t timer_divider_3 = 80;
-static const uint64_t timer_max_count_3 = 500000;
-
 static hw_timer_t *timer = NULL;		// timer for publishing servos pos.
 static hw_timer_t *timer2 = NULL;		// timer for publishing servos volt & temps
-static hw_timer_t *timer3 = NULL;		// timer for flashing LED every 500ms
 
 bool publish_servo_pos_flag = false;
 bool publish_temp_and_volt_flag = true;
+
+
+// =====================================================================================================
+// ROS ERROR HANDLING
+// =====================================================================================================
+#define ROS_LED_PIN 4
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){return false;}}
+
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
+
+bool micro_ros_init_successful;
+enum states {
+  WAITING_AGENT,
+  AGENT_AVAILABLE,
+  AGENT_CONNECTED,
+  AGENT_DISCONNECTED
+} state;
+
+
+bool error_loop(){
+	return false;
+}
 
 
 rcl_node_t node_hiwonder;	// Node object
@@ -103,26 +121,13 @@ rclc_executor_t executor_servo_temp_publish;
 rclc_executor_t executor_single_servo_cmd_sub;
 rclc_executor_t executor_multi_servo_move_cmd_sub;
 
-// ROS Error Handling
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
-
-
-// Error loop (will flash LED if error)
-void error_loop(){
-  while(1){
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-    delay(50);
-  }
-}
-
 
 // ROS messages
 sensor_msgs__msg__JointState servo_position_array_msg;
 std_msgs__msg__Int32 msg;
 
 std_msgs__msg__Int64MultiArray single_servo_cmd_msg_in;
-std_msgs__msg__Int64MultiArray multi_servo_cmd_msg_in;
+std_msgs__msg__Int16MultiArray multi_servo_cmd_msg_in;
 
 std_msgs__msg__Int16MultiArray servo_voltages_msg;
 std_msgs__msg__Int16MultiArray servo_temps_msg;
@@ -199,7 +204,7 @@ void IRAM_ATTR onTimer2() {
 // Subscriber callback for commanding multi servo
 void subscription_callback_multi_servo(const void * msgin) {
 	// Move all the servos (dont move if argument is negative)
-	const std_msgs__msg__Int64MultiArray * multi_servo = (const std_msgs__msg__Int64MultiArray *)msgin;
+	const std_msgs__msg__Int16MultiArray * multi_servo = (const std_msgs__msg__Int16MultiArray *)msgin;
 
 	if (multi_servo->data.data[0] >= 0) {
 		servo1.move_time(multi_servo->data.data[0], multi_servo->data.data[6]);
@@ -235,6 +240,91 @@ void subscription_callback_multi_servo(const void * msgin) {
 }
 
 
+
+bool create_entities(){
+	
+	// =====================================================================================================
+	// ROS SETUP
+	// =====================================================================================================
+
+	allocator = rcl_get_default_allocator();			// Initialize micro-ROS allocator
+	RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));					// Initialize support options
+  	RCCHECK(rclc_node_init_default(&node_hiwonder, "Hiwonder_xArm_node", "", &support)); // create node
+
+	// =====================================================================================================
+    // PUBLISHERS
+    // =====================================================================================================
+
+	// Servo position publisher (publishes at a rate of X Hz)
+	RCCHECK(rclc_publisher_init_default(
+		&publisher_servo_pos, 
+		&node_hiwonder, 
+		ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState), 
+		"servo_pos_publisher"));
+
+	// Servo voltage publisher (publishes every 5 seconds)
+	RCCHECK(rclc_publisher_init_default(
+		&publisher_servo_vin, 
+		&node_hiwonder, 
+		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16MultiArray), 
+		"servo_volt_publisher"));
+
+	// Servo temperature publisher (publishes every 5 seconds)
+	RCCHECK(rclc_publisher_init_default(
+		&publisher_servo_temp, 
+		&node_hiwonder, 
+		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16MultiArray), 
+		"servo_temp_publisher"));
+
+	// =====================================================================================================
+    // SUBSCRIBERS
+    // =====================================================================================================
+
+	// Subscriber for moving multiple servos
+	RCCHECK(rclc_subscription_init_default(
+		&subscriber_multi_servo_cmd, 
+		&node_hiwonder, 
+		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16MultiArray), 
+		"multi_servo_cmd_sub"));
+	
+	// =====================================================================================================
+    // EXECUTORS
+    // =====================================================================================================
+
+	// init executors
+	RCCHECK(rclc_executor_init(&executor_servo_pos_publish, &support.context, 1, &allocator));			// executor for publishing servo pos.
+	RCCHECK(rclc_executor_init(&executor_servo_vin_publish, &support.context, 1, &allocator));			// executor for publishing servo pos.
+	RCCHECK(rclc_executor_init(&executor_servo_temp_publish, &support.context, 1, &allocator));			// executor for publishing servo pos.
+	// RCCHECK(rclc_executor_init(&executor_single_servo_cmd_sub, &support.context, 1, &allocator));		// executor for one servo cmd subscriber
+	RCCHECK(rclc_executor_init(&executor_multi_servo_move_cmd_sub, &support.context, 1, &allocator));	// executor for multi servo cmd subscriber
+
+	// executor additions
+	// RCCHECK(rclc_executor_add_subscription(&executor_single_servo_cmd_sub, &subscriber_one_servo_cmd, &single_servo_cmd_msg_in, &subscription_callback_single_servo, ON_NEW_DATA));
+	RCCHECK(rclc_executor_add_subscription(&executor_multi_servo_move_cmd_sub, &subscriber_multi_servo_cmd, &multi_servo_cmd_msg_in, &subscription_callback_multi_servo, ON_NEW_DATA));
+
+	return true;
+}
+
+void destroy_entities()
+{
+  rmw_context_t * rmw_context = rcl_context_get_rmw_context(&support.context);
+  (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
+
+  rcl_publisher_fini(&publisher_servo_pos, &node_hiwonder);
+  rcl_publisher_fini(&publisher_servo_vin, &node_hiwonder);
+  rcl_publisher_fini(&publisher_servo_temp, &node_hiwonder);
+
+  rcl_subscription_fini(&subscriber_multi_servo_cmd, &node_hiwonder);
+
+  rclc_executor_fini(&executor_servo_pos_publish);
+  rclc_executor_fini(&executor_servo_vin_publish);
+  rclc_executor_fini(&executor_servo_temp_publish);
+  rclc_executor_fini(&executor_multi_servo_move_cmd_sub);
+
+  rcl_node_fini(&node_hiwonder);
+  rclc_support_fini(&support);
+}
+
 // =====================================================================================================
 // SETUP FUNCTION
 // =====================================================================================================
@@ -243,6 +333,7 @@ void setup() {
 	Serial.begin(115200);
 	set_microros_serial_transports(Serial);
 	delay(2000);
+
 
 	// LED on Init
 	pinMode(LED_BUILTIN, OUTPUT);
@@ -265,6 +356,65 @@ void setup() {
 	digitalWrite(22, LOW);
 	delay(250);
 	digitalWrite(22, HIGH);
+
+	pinMode(4, OUTPUT);
+
+	// =====================================================================================================
+    // SERVO SETUP
+    // =====================================================================================================
+
+	Serial.println("Beginning Servo Example");
+	servoBus.beginOnePinMode(&Serial2,33);
+	servoBus.debug(true);
+	servoBus.retry=3;
+
+	// Reset the servo positions
+	servo1.move_time(16000,1000);
+	servo2.move_time(12000,1250);
+	servo3.move_time(12000,1500);
+	servo4.move_time(12000,2000);
+	servo5.move_time(12000,2000);
+	servo6.move_time(12000,2000);
+	delay(2000);
+
+	servo1.move_time(2000,500);
+	delay(500);
+	servo1.move_time(16000,500);
+	delay(500);
+	servo1.move_time(2000,500);
+	delay(500);
+
+	// Read in servo positions
+	pos[0] = servo1.pos_read();
+	pos[1] = servo2.pos_read();
+	pos[2] = servo3.pos_read();
+	pos[3] = servo4.pos_read();
+	pos[4] = servo5.pos_read();
+	pos[5] = servo6.pos_read();
+	delay(1000);
+
+	// Read in servo voltages
+	v_in_cached[0] = servo1.vin();
+	v_in_cached[1] = servo2.vin();
+	v_in_cached[2] = servo3.vin();
+	v_in_cached[3] = servo4.vin();
+	v_in_cached[4] = servo5.vin();
+	v_in_cached[5] = servo6.vin();
+	delay(1000);
+
+	// Read in servo temperatures
+	temp_cached[0] = servo1.temp();
+	temp_cached[1] = servo2.temp();
+	temp_cached[2] = servo3.temp();
+	temp_cached[3] = servo4.temp();
+	temp_cached[4] = servo5.temp();
+	temp_cached[5] = servo6.temp();
+	delay(1000);
+
+	delay(1000);
+
+	// Declare ros-agent state as waiting;
+	state = WAITING_AGENT;
 
 
 	// =====================================================================================================
@@ -297,114 +447,11 @@ void setup() {
 
 	// Allow ISR to trigger
 	timerAlarmEnable(timer2);
-
-
-	// =====================================================================================================
-    // SERVO SETUP
-    // =====================================================================================================
-
-	Serial.println("Beginning Servo Example");
-	servoBus.beginOnePinMode(&Serial2,33);
-	servoBus.debug(true);
-	servoBus.retry=3;
-
-	// Reset the servo positions
-	servo1.move_time(16000,1000);
-	servo2.move_time(12000,1250);
-	servo3.move_time(12000,1500);
-	servo4.move_time(12000,2000);
-	servo5.move_time(12000,2500);
-	servo6.move_time(12000,3000);
-	delay(3000);
-
-	// Read in servo positions
-	pos[0] = servo1.pos_read();
-	pos[1] = servo2.pos_read();
-	pos[2] = servo3.pos_read();
-	pos[3] = servo4.pos_read();
-	pos[4] = servo5.pos_read();
-	pos[5] = servo6.pos_read();
-	delay(1000);
-
-	// Read in servo voltages
-	v_in_cached[0] = servo1.vin();
-	v_in_cached[1] = servo2.vin();
-	v_in_cached[2] = servo3.vin();
-	v_in_cached[3] = servo4.vin();
-	v_in_cached[4] = servo5.vin();
-	v_in_cached[5] = servo6.vin();
-	delay(1000);
-
-	// Read in servo temperatures
-	temp_cached[0] = servo1.temp();
-	temp_cached[1] = servo2.temp();
-	temp_cached[2] = servo3.temp();
-	temp_cached[3] = servo4.temp();
-	temp_cached[4] = servo5.temp();
-	temp_cached[5] = servo6.temp();
-	delay(1000);
-
-	delay(1000);
-
-
-	// =====================================================================================================
-    // ROS SETUP
-    // =====================================================================================================
-
-	allocator = rcl_get_default_allocator();									// Initialize micro-ROS allocator
-	RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));					// Initialize support options
 	
-	// create node
-  	RCCHECK(rclc_node_init_default(&node_hiwonder, "Hiwonder_xArm_node", "", &support));
 
-	// =====================================================================================================
-    // SERVICES
-    // =====================================================================================================
-
-
-	// =====================================================================================================
-    // PUBLISHERS
-    // =====================================================================================================
-
-	// Servo position publisher (publishes at a rate of X Hz)
-	RCCHECK(rclc_publisher_init_default(
-		&publisher_servo_pos, 
-		&node_hiwonder, 
-		ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, JointState), 
-		"servo_pos_publisher"));
-
-	// Servo voltage publisher (publishes every 5 seconds)
-	RCCHECK(rclc_publisher_init_default(
-		&publisher_servo_vin, 
-		&node_hiwonder, 
-		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16MultiArray), 
-		"servo_volt_publisher"));
-
-	// Servo temperature publisher (publishes every 5 seconds)
-	RCCHECK(rclc_publisher_init_default(
-		&publisher_servo_temp, 
-		&node_hiwonder, 
-		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16MultiArray), 
-		"servo_temp_publisher"));
-
-
-	// =====================================================================================================
-    // SUBSCRIBERS
-    // =====================================================================================================
-
-	// Subscriber for moving a single servo
-	// RCCHECK(rclc_subscription_init_default(
-	// 	&subscriber_one_servo_cmd, 
-	// 	&node_hiwonder, 
-	// 	ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64MultiArray), 
-	// 	"single_servo_cmd_sub"));
-
-	// Subscriber for moving multiple servos
-	RCCHECK(rclc_subscription_init_default(
-		&subscriber_multi_servo_cmd, 
-		&node_hiwonder, 
-		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int64MultiArray), 
-		"multi_servo_cmd_sub"));
+	// // =====================================================================================================
+    // // SERVICES
+    // // =====================================================================================================
 
 
 	// =====================================================================================================
@@ -481,7 +528,7 @@ void setup() {
 	// (3) multi_servo_cmd_msg
 	multi_servo_cmd_msg_in.data.capacity = 12;
 	multi_servo_cmd_msg_in.data.size = 0;
-  	multi_servo_cmd_msg_in.data.data = (int64_t*) malloc(single_servo_cmd_msg_in.data.capacity * sizeof(int64_t));
+  	multi_servo_cmd_msg_in.data.data = (int16_t*) malloc(single_servo_cmd_msg_in.data.capacity * sizeof(int16_t));
 
 	multi_servo_cmd_msg_in.layout.dim.capacity = 3;
 	multi_servo_cmd_msg_in.layout.dim.size = 0;
@@ -524,21 +571,8 @@ void setup() {
 		servo_temps_msg.layout.dim.data[i].label.data = (char*) malloc(servo_temps_msg.layout.dim.data[i].label.capacity * sizeof(char));
 	}
 
-	// =====================================================================================================
-    // EXECUTORS
-    // =====================================================================================================
-
-	// init executors
-	RCCHECK(rclc_executor_init(&executor_servo_pos_publish, &support.context, 1, &allocator));			// executor for publishing servo pos.
-	RCCHECK(rclc_executor_init(&executor_servo_vin_publish, &support.context, 1, &allocator));			// executor for publishing servo pos.
-	RCCHECK(rclc_executor_init(&executor_servo_temp_publish, &support.context, 1, &allocator));			// executor for publishing servo pos.
-	// RCCHECK(rclc_executor_init(&executor_single_servo_cmd_sub, &support.context, 1, &allocator));		// executor for one servo cmd subscriber
-	RCCHECK(rclc_executor_init(&executor_multi_servo_move_cmd_sub, &support.context, 1, &allocator));	// executor for multi servo cmd subscriber
-
-	// executor additions
-	// RCCHECK(rclc_executor_add_subscription(&executor_single_servo_cmd_sub, &subscriber_one_servo_cmd, &single_servo_cmd_msg_in, &subscription_callback_single_servo, ON_NEW_DATA));
-	RCCHECK(rclc_executor_add_subscription(&executor_multi_servo_move_cmd_sub, &subscriber_multi_servo_cmd, &multi_servo_cmd_msg_in, &subscription_callback_multi_servo, ON_NEW_DATA));
 }
+
 
 
 // =====================================================================================================
@@ -547,83 +581,119 @@ void setup() {
 
 	
 void loop() {	
-	if (publish_servo_pos_flag == true) {
-		pos[0] = servo1.pos_read();
-		pos[1] = servo2.pos_read();
-		pos[2] = servo3.pos_read();
-		pos[3] = servo4.pos_read();
-		pos[4] = servo5.pos_read();
-		pos[5] = servo6.pos_read();
-		delay(10);
+	
+	RCSOFTCHECK(rclc_executor_spin_some(&executor_multi_servo_move_cmd_sub, RCL_MS_TO_NS(100)));
 
-		effort_array[0]++;
-
-
-		// Update servo_position_array_msg
-		servo_position_array_msg.position.data = pos;
-		servo_position_array_msg.effort.data = effort_array;
-		servo_position_array_msg.velocity.data = vel;
-		servo_position_array_msg.header.stamp.sec = (uint16_t)(rmw_uros_epoch_millis()/1000); 	// timestamp
-		servo_position_array_msg.header.stamp.nanosec = (uint32_t)rmw_uros_epoch_nanos();		// timestamp
-
+	switch(state) {
+		case WAITING_AGENT:
+			//check for agent connection
+			state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE : WAITING_AGENT;
+            break;
 		
-		// Publishes
-		RCSOFTCHECK(rcl_publish(&publisher_servo_pos, &servo_position_array_msg, NULL));
-		publish_servo_pos_flag = false;
+		case AGENT_AVAILABLE:
+			// Create micro-ROS entities
+			state = (true == create_entities()) ? AGENT_CONNECTED : WAITING_AGENT;
+			if (state == WAITING_AGENT) {
+				// Creation failed, release allocated resources
+				destroy_entities();
+			};
+			break;
+		
+		case AGENT_CONNECTED:
+            // Check connection and spin on success
+            state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;
+            if (state == AGENT_CONNECTED)
+            {
+				if (publish_servo_pos_flag == true) {
+					pos[0] = servo1.pos_read();
+					pos[1] = servo2.pos_read();
+					pos[2] = servo3.pos_read();
+					pos[3] = servo4.pos_read();
+					pos[4] = servo5.pos_read();
+					pos[5] = servo6.pos_read();
+					delay(10);
+
+					effort_array[0]++;
+
+
+					// Update servo_position_array_msg
+					servo_position_array_msg.position.data = pos;
+					servo_position_array_msg.effort.data = effort_array;
+					servo_position_array_msg.velocity.data = vel;
+					servo_position_array_msg.header.stamp.sec = (uint16_t)(rmw_uros_epoch_millis()/1000); 	// timestamp
+					servo_position_array_msg.header.stamp.nanosec = (uint32_t)rmw_uros_epoch_nanos();		// timestamp
+
+					
+					// Publishes
+					RCSOFTCHECK(rcl_publish(&publisher_servo_pos, &servo_position_array_msg, NULL));
+					publish_servo_pos_flag = false;
+				}
+
+				if (publish_temp_and_volt_flag == true) {
+					// Read servo voltages
+					vin[0] = servo1.vin();
+					vin[1] = servo2.vin();
+					vin[2] = servo3.vin();
+					vin[3] = servo4.vin();
+					vin[4] = servo5.vin();
+					vin[5] = servo6.vin();
+					delay(10);
+
+					if (vin[0] != 0) v_in_cached[0] = vin[0];
+					if (vin[1] != 0) v_in_cached[1] = vin[1];
+					if (vin[2] != 0) v_in_cached[2] = vin[2];
+					if (vin[3] != 0) v_in_cached[3] = vin[3];
+					if (vin[4] != 0) v_in_cached[4] = vin[4];
+					if (vin[5] != 0) v_in_cached[5] = vin[5];
+
+					// Give msg new data
+					servo_voltages_msg.data.data = v_in_cached;
+					
+
+					// Read servo temps
+					temp[0] = servo1.temp();
+					temp[1] = servo2.temp();
+					temp[2] = servo3.temp();
+					temp[3] = servo4.temp();
+					temp[4] = servo5.temp();
+					temp[5] = servo6.temp();
+					delay(10);
+
+					if (temp[0] != 0) temp_cached[0] = temp[0];
+					if (temp[1] != 0) temp_cached[1] = temp[1];
+					if (temp[2] != 0) temp_cached[2] = temp[2];
+					if (temp[3] != 0) temp_cached[3] = temp[3];
+					if (temp[4] != 0) temp_cached[4] = temp[4];
+					if (temp[5] != 0) temp_cached[5] = temp[5];
+
+					// Give msg new data
+					servo_temps_msg.data.data = temp_cached;
+
+					// Publish messages
+					RCSOFTCHECK(rcl_publish(&publisher_servo_vin, &servo_voltages_msg, NULL));
+					RCSOFTCHECK(rcl_publish(&publisher_servo_temp, &servo_temps_msg, NULL));
+
+					publish_temp_and_volt_flag = false;
+				}
+                rclc_executor_spin_some(&executor_multi_servo_move_cmd_sub, RCL_MS_TO_NS(100));
+            }
+            break;
+
+		case AGENT_DISCONNECTED:
+            // Connection is lost, destroy entities and go back to first step
+            destroy_entities();
+            state = WAITING_AGENT;
+            break;
+
+        default:
+            break;
 	}
 
-	if (publish_temp_and_volt_flag == true) {
-		// Read servo voltages
-		vin[0] = servo1.vin();
-		vin[1] = servo2.vin();
-		vin[2] = servo3.vin();
-		vin[3] = servo4.vin();
-		vin[4] = servo5.vin();
-		vin[5] = servo6.vin();
-		delay(10);
-
-		if (vin[0] != 0) v_in_cached[0] = vin[0];
-		if (vin[1] != 0) v_in_cached[1] = vin[1];
-		if (vin[2] != 0) v_in_cached[2] = vin[2];
-		if (vin[3] != 0) v_in_cached[3] = vin[3];
-		if (vin[4] != 0) v_in_cached[4] = vin[4];
-		if (vin[5] != 0) v_in_cached[5] = vin[5];
-
-		// Give msg new data
-		servo_voltages_msg.data.data = v_in_cached;
-		
-
-		// Read servo temps
-		temp[0] = servo1.temp();
-		temp[1] = servo2.temp();
-		temp[2] = servo3.temp();
-		temp[3] = servo4.temp();
-		temp[4] = servo5.temp();
-		temp[5] = servo6.temp();
-		delay(10);
-
-		if (temp[0] != 0) temp_cached[0] = temp[0];
-		if (temp[1] != 0) temp_cached[1] = temp[1];
-		if (temp[2] != 0) temp_cached[2] = temp[2];
-		if (temp[3] != 0) temp_cached[3] = temp[3];
-		if (temp[4] != 0) temp_cached[4] = temp[4];
-		if (temp[5] != 0) temp_cached[5] = temp[5];
-
-		// Give msg new data
-		servo_temps_msg.data.data = temp_cached;
-
-		// Publish messages
-		RCSOFTCHECK(rcl_publish(&publisher_servo_vin, &servo_voltages_msg, NULL));
-		RCSOFTCHECK(rcl_publish(&publisher_servo_temp, &servo_temps_msg, NULL));
-
-		publish_temp_and_volt_flag = false;
-	}
-
-	delay(5);
-
-	// Subscribers added to spin
-	// RCCHECK(rclc_executor_spin_some(&executor_single_servo_cmd_sub, RCL_MS_TO_NS(100)));
-	RCCHECK(rclc_executor_spin_some(&executor_multi_servo_move_cmd_sub, RCL_MS_TO_NS(100)));
+	if (state == AGENT_CONNECTED) {
+    	digitalWrite(ROS_LED_PIN, 1);
+  	} else {
+    	digitalWrite(ROS_LED_PIN, 0);
+  }
 
 }
 
