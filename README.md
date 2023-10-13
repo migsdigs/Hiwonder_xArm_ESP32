@@ -103,7 +103,9 @@ source install/setup.bash
    dmesg | grep tty
    [ 2256.333770] usb 1-1: cp210x converter now attached to ttyUSB0
    ```
-   Which indicates that the serial is connected to `ttyUSB0`.   
+   Which indicates that the serial is connected to `ttyUSB0`.  
+
+3. To end the connection with micro-ROS press `ctrl + c` in the terminal. To restart the connection with micro-ROS just run `ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSB0 -v6`.
 
   **Before proceeding, cut power to the servos and then restore it, to restart them.** I have found that this gives better responsiveness and less likely for the servos to fail on read or write commands.
 
