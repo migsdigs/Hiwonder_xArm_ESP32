@@ -48,6 +48,7 @@ Servos can be daisy chained together. Thus all six servos may be chained togethe
 1. Ensure that the servos are powered on (their LEDs will light up) with the 7.5V source.
 2. Power on the ESP32 by plugging it in with the micro-USB.
 3. Ensure that the Serial lines of the servos are connected to **Pin 33** of the ESP32
+4. Ensure that the servos and the ESP32 have a common ground.
 
 ### Build & Run
 Note again: see **[setup readme](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/SETUP_README.md)** for installation instructions.
@@ -71,43 +72,38 @@ source install/setup.bash
 ```
 
 #### Run
-1. Unplug the ESP32 from the host computer (Maintain power to the servos).
+1. Plug the ESP32 into the host PC with the USB.
 2. In the micro-ros directory (for me `/home/miguel_u22/esp32_microros_ws`), run the micro-ROS agent:
    `ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSB0 -v6`
 
    This should produce the following response:
    ```bash
-   [1696497991.336987] info | TermiosAgentLinux.cpp | init | Serial port not found. | device: /dev/ttyUSB0, error 2, waiting for connection...
-   [1696497992.346918] info | TermiosAgentLinux.cpp | init | Serial port not found. | device: /dev/ttyUSB0, error 2, waiting for connection...
-   ```
+    [1696498217.465170] info     | TermiosAgentLinux.cpp | init                     | running...             | fd: 3
+    [1696498217.465918] info     | Root.cpp           | set_verbose_level        | logger setup           | verbose_level: 6
+    [1696498226.028623] info     | Root.cpp           | create_client            | create                 | client_key: 0x340D845A, session_id: 0x81
+    [1696498226.028907] info     | SessionManager.hpp | establish_session        | session established    | client_key: 0x340D845A, address: 0
+    [1696498226.029119] debug    | SerialAgentLinux.cpp | send_message             | [** <<SER>> **]        | client_key: 0x340D845A, len: 19, data:
+    0000: 81 00 00 00 04 01 0B 00 00 00 58 52 43 45 01 00 01 0F 00
+    [1696498226.041597] debug    | SerialAgentLinux.cpp | recv_message             | [==>> SER <<==]        | client_key: 0x340D845A, len: 52, data:
+    0000: 81 80 00 00 01 07 2A 00 00 0A 00 01 01 03 00 00 1B 00 00 00 00 01 FB 3F 13 00 00 00 48 69 77 6F
+    0020: 6E 64 65 72 5F 78 41 72 6D 5F 6E 6F 64 65 00 00 00 00 00 00
+    [1696498226.064239] info     | ProxyClient.cpp    | create_participant       | participant created    | client_key: 0x340D845A, participant_id: 0x000(1)
+    [1696498226.064379] debug    | SerialAgentLinux.cpp | send_message             | [** <<SER>> **]        | client_key: 0x340D845A, len: 14, data:
+    0000: 81 80 00 00 05 01 06 00 00 0A 00 01 00 00
+    [1696498226.064408] debug    | SerialAgentLinux.cpp | send_message             | [** <<SER>> **]        | client_key: 0x340D845A, len: 13, data:
+    0000: 81 00 00 00 0A 01 05 00 01 00 00 00 80
+    [1696498226.075602] debug    | SerialAgentLinux.cpp | recv_message             | [==>> SER <<==]        | client_key: 0x340D845A, len: 13, data:
+    0000: 81 00 00 00 0A 01 05 00 01 00 00 00 80
+    [1696498226.082373] debug    | SerialAgentLinux.cpp | recv_message             | [==>> SER <<==]        | client_key: 0x340D845A, len: 96, data:
+    ```
+  The agent is now running, and we can begin communicating with the ESP32 via ROS2 to control the servos.
    
    If there is an issue, ensure that this is the correct serial connection. This can be verified by plugging in the ESP micro and running the following:
    ```bash
    dmesg | grep tty
    [ 2256.333770] usb 1-1: cp210x converter now attached to ttyUSB0
    ```
-   Which indicates that the serial is connected to `ttyUSB0`.
-4. Re-connect the ESP32 to the host computer. Something similar to the following should display in the same terminal:
-   ```bash
-   [1696498217.465170] info     | TermiosAgentLinux.cpp | init                     | running...             | fd: 3
-   [1696498217.465918] info     | Root.cpp           | set_verbose_level        | logger setup           | verbose_level: 6
-   [1696498226.028623] info     | Root.cpp           | create_client            | create                 | client_key: 0x340D845A, session_id: 0x81
-   [1696498226.028907] info     | SessionManager.hpp | establish_session        | session established    | client_key: 0x340D845A, address: 0
-   [1696498226.029119] debug    | SerialAgentLinux.cpp | send_message             | [** <<SER>> **]        | client_key: 0x340D845A, len: 19, data:
-   0000: 81 00 00 00 04 01 0B 00 00 00 58 52 43 45 01 00 01 0F 00
-   [1696498226.041597] debug    | SerialAgentLinux.cpp | recv_message             | [==>> SER <<==]        | client_key: 0x340D845A, len: 52, data:
-   0000: 81 80 00 00 01 07 2A 00 00 0A 00 01 01 03 00 00 1B 00 00 00 00 01 FB 3F 13 00 00 00 48 69 77 6F
-   0020: 6E 64 65 72 5F 78 41 72 6D 5F 6E 6F 64 65 00 00 00 00 00 00
-   [1696498226.064239] info     | ProxyClient.cpp    | create_participant       | participant created    | client_key: 0x340D845A, participant_id: 0x000(1)
-   [1696498226.064379] debug    | SerialAgentLinux.cpp | send_message             | [** <<SER>> **]        | client_key: 0x340D845A, len: 14, data:
-   0000: 81 80 00 00 05 01 06 00 00 0A 00 01 00 00
-   [1696498226.064408] debug    | SerialAgentLinux.cpp | send_message             | [** <<SER>> **]        | client_key: 0x340D845A, len: 13, data:
-   0000: 81 00 00 00 0A 01 05 00 01 00 00 00 80
-   [1696498226.075602] debug    | SerialAgentLinux.cpp | recv_message             | [==>> SER <<==]        | client_key: 0x340D845A, len: 13, data:
-   0000: 81 00 00 00 0A 01 05 00 01 00 00 00 80
-   [1696498226.082373] debug    | SerialAgentLinux.cpp | recv_message             | [==>> SER <<==]        | client_key: 0x340D845A, len: 96, data:
-   ```
-  The agent is now running, and we can begin communicating with the ESP32 via ROS2 to control the servos.
+   Which indicates that the serial is connected to `ttyUSB0`.   
 
   **Before proceeding, cut power to the servos and then restore it, to restart them.** I have found that this gives better responsiveness and less likely for the servos to fail on read or write commands.
 
