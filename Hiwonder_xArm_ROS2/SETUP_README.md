@@ -89,6 +89,30 @@ That should result in something like:
 
 ---
 
+## Cloning and Building
+Clone this repository into the `src` folder of the workspace. In a new terminal:
+```bash
+cd hiwonder_xArm_ws/src/
+git clone https://github.com/migsdigs/Hiwonder_xArm_ESP32.git
+```
+
+Open the project in the PlatformIO environment, the path to this should be similar to `/home/user_Ubuntu/hiwonder_xArm_ws/src/Hiwonder_xArm_ESP32/Hiwonder_xArm_ROS2`. Ensure that the environment is correctly configured, by opening the [platformio.ini](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/platformio.ini) file and ensuring it is configured as follows:
+```ini
+[env:nodemcu-32s]
+platform = espressif32@2.0.0
+board = nodemcu-32s
+framework = arduino
+monitor_speed = 115200
+lib_deps = 
+    madhephaestus/lx16a-servo@^0.9.3
+    https://github.com/micro-ROS/micro_ros_platformio
+board_microros_distro = humble
+board_microros_transport = serial
+```
+
+While the board being used is an ESP32-DevKitC-32E, the LX-16a servo driver library functions only for earlier versions of the ESP32 toolchain. The library is verified to work on the NodeMCU-32S development board with the espressif32@2.0.0 toolchain version, and thus we utilize it.
+
+
 Now open your IDE and the PlatformIO environment. In the terminal, begin with:
 ```console
 apt install -y git cmake python3-pip
@@ -116,29 +140,6 @@ pio run --target clean_microros  # Clean library
 Micro-ROS dependencies should now be added to the PlatformIO environment.
 
 ---
-
-## Cloning and Building
-Clone this repository into the `src` folder of the workspace. In a new terminal:
-```bash
-cd hiwonder_xArm_ws/src
-git clone https://github.com/migsdigs/Hiwonder_xArm_ESP32.git
-```
-
-Open the project in the PlatformIO environment, the path to this should be similar to `/home/user_Ubuntu/hiwonder_xArm_ws/src/Hiwonder_xArm_ESP32/Hiwonder_xArm_ROS2`. Ensure that the environment is correctly configured, by opening the [platformio.ini](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/platformio.ini) file and ensuring it is configured as follows:
-```ini
-[env:nodemcu-32s]
-platform = espressif32@2.0.0
-board = nodemcu-32s
-framework = arduino
-monitor_speed = 115200
-lib_deps = 
-    madhephaestus/lx16a-servo@^0.9.3
-    https://github.com/micro-ROS/micro_ros_platformio
-board_microros_distro = humble
-board_microros_transport = serial
-```
-
-While the board being used is an ESP32-DevKitC-32E, the LX-16a servo driver library functions only for earlier versions of the ESP32 toolchain. The library is verified to work on the NodeMCU-32S development board with the espressif32@2.0.0 toolchain version, and thus we utilize it.
 
 
 ## Flash the ESP32
