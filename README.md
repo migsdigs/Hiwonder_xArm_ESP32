@@ -5,7 +5,7 @@
 
 **For the use of these motors with an ESP32 and ROS1-Rosserial, please go to this [link](https://github.com/migsdigs/Hiwonder_xArm_ESP32/tree/main/Hiwonder_ESP32).**
 
-**For the setup of the environemnt, including ROS2 installation and workspace, micro-ROS installation and setup of the IDE **please see** the [Setup README](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/SETUP_README.md).**
+**For the setup of the environment, including ROS2 installation and workspace, micro-ROS installation and setup of the IDE **please see** the [Setup README](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/SETUP_README.md).**
 
 
 ### **Test System: Ubuntu 22.04 on WSL, ROS2 Humble Hawksbill, Micro-ROS, ESP32-DevkitC-32E with PlatformIO in VS Code as the dev environment**
