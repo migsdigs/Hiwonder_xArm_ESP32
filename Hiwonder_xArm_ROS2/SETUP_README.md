@@ -8,41 +8,42 @@ Some notes:
 ## Dependencies & Build
 The development environment used for this was the VS Code IDE with the [PlatformIO extension](https://platformio.org/install/ide?install=vscode). Prior to continuing please add this extension to your VS code environment (and install [VS Code](https://code.visualstudio.com/) or some other PlatformIO compatible IDE).
 
-Clone this repository:
-```bash
-cd
-mkdir hiwonder_xArm_ws
-git clone https://github.com/migsdigs/Hiwonder_xArm_ESP32.git
-```
-
-Open the project in the PlatformIO environment, the path to this should be similar to `/home/user_Ubuntu/hiwonder_xArm_ws/Hiwonder_xArm_ESP32/Hiwonder_xArm_ROS2`. Ensure that the environment is correctly configured, by opening the [platformio.ini](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/platformio.ini) file and ensuring it is configured as follows:
-```ini
-[env:nodemcu-32s]
-platform = espressif32@2.0.0
-board = nodemcu-32s
-framework = arduino
-monitor_speed = 115200
-lib_deps = 
-    madhephaestus/lx16a-servo@^0.9.3
-    https://github.com/micro-ROS/micro_ros_platformio
-board_microros_distro = humble
-board_microros_transport = serial
-```
-
-While the board being used is an ESP32-DevKitC-32E, the LX-16a servo driver library functions only for earlier versions of the ESP32 toolchain. The library is verified to work on the NodeMCU-32S development board with the espressif32@2.0.0 toolchain version, and thus we utilize it.
-
-Next we should ensure the installation and configuration of ROS2 and Micro-ROS.
 
 ## ROS2 & Micro-ROS
 The communication from the host machine to the ESP32 is done using micro-ROS and ROS2 nodes. [ROS2 Humble Hawksbill](https://docs.ros.org/en/humble/index.html) due to its its distant EOL.
 For the install of ROS2 Humble, one should ensure that the host machine is running [Ubuntu 22.04](https://releases.ubuntu.com/jammy/), 
 and then refer to the Ubuntu (Debian) install page [here](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html). It is then recommended that the user looks at some of 
-the tutorials, particularly if they have no previous experience with ROS2. It is suggusted that the user at least skims over the tutorials [configuring environment](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Configuring-ROS2-Environment.html)
-and [creating a workspace](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html), as it might effect the micro-ROS installation later on.
-When configuring the environment it is important to set the ROS domain ID to 0, and to ignore the setting of the ROS_LOCAL_HOST environment variable, as this will avoid conflicts with micro-ROS.
+the tutorials, particularly if they have no previous experience with ROS2. It is suggusted that the user at least skims over the tutorials [configuring environment](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Configuring-ROS2-Environment.html) and [creating a workspace](https://github.com/migsdigs/Hiwonder_xArm_ESP32/edit/main/Hiwonder_xArm_ROS2/SETUP_README.md#creating-the-ros2-workspace) (please refer to this below), as it might effect the micro-ROS installation later on.
+When configuring the environment it is important to set the `ROS_DOMAIN_ID` to 0, and to ignore the setting of the `ROS_LOCAL_HOST` environment variable, as this will avoid conflicts with micro-ROS.
 
-For the micro-ROS installation, one should refer to [micro-ROS porting to ESP32](https://micro.ros.org/blog/2020/08/27/esp32/) and its related pages. One should thus proceed
-with the [core-tutorials](https://micro.ros.org//docs/tutorials/core/overview/) or at the very least complete the [First micro-ROS application on Linux](https://micro.ros.org//docs/tutorials/core/first_application_linux/) to ensure that the micro-ROS is installed and running accordingly. 
+### Creating the ROS2 Workspace
+Once the ROS2 installation is complete, one should create a workspace. For more detailed ROS instructions, please click [here](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html). Otherwise, proceed with the following:
+
+Source ROS2 environment:
+```bash
+source /opt/ros/humble/setup.bash
+```
+
+Create the new directory:
+```bash
+mkdir -p ~/hiwonder_xArm_ws/src
+cd hiwonder_xArm_ws
+```
+
+Build the workspace environment using Colcon:
+```bash
+colcon build
+```
+
+Running `ls` in this terminal should give:
+```bash
+build  install  log  src
+```
+
+
+### Micro-ROS installation
+
+For the micro-ROS installation, one should refer to [micro-ROS porting to ESP32](https://micro.ros.org/blog/2020/08/27/esp32/) and its related pages. One should thus proceed with the [core-tutorials](https://micro.ros.org//docs/tutorials/core/overview/) or at the very least complete the [First micro-ROS application on Linux](https://micro.ros.org//docs/tutorials/core/first_application_linux/) to ensure that the micro-ROS is installed and running accordingly. 
 
 If you experience difficulties when testing the micro-ROS app with the Ping Pong example in the "First micro-ROS Application in Linux" tutorial, it is likely due to [configuration settings](https://github.com/migsdigs/Hiwonder_xArm_ESP32/edit/main/Hiwonder_xArm_ROS2/SETUP_README.md#2-ros2-installation---configuration-settings) in the ROS2 installation.
 
@@ -115,6 +116,30 @@ pio run --target clean_microros  # Clean library
 Micro-ROS dependencies should now be added to the PlatformIO environment.
 
 ---
+
+## Cloning and Building
+Clone this repository into the `src` folder of the workspace. In a new terminal:
+```bash
+cd hiwonder_xArm_ws/src
+git clone https://github.com/migsdigs/Hiwonder_xArm_ESP32.git
+```
+
+Open the project in the PlatformIO environment, the path to this should be similar to `/home/user_Ubuntu/hiwonder_xArm_ws/src/Hiwonder_xArm_ESP32/Hiwonder_xArm_ROS2`. Ensure that the environment is correctly configured, by opening the [platformio.ini](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/platformio.ini) file and ensuring it is configured as follows:
+```ini
+[env:nodemcu-32s]
+platform = espressif32@2.0.0
+board = nodemcu-32s
+framework = arduino
+monitor_speed = 115200
+lib_deps = 
+    madhephaestus/lx16a-servo@^0.9.3
+    https://github.com/micro-ROS/micro_ros_platformio
+board_microros_distro = humble
+board_microros_transport = serial
+```
+
+While the board being used is an ESP32-DevKitC-32E, the LX-16a servo driver library functions only for earlier versions of the ESP32 toolchain. The library is verified to work on the NodeMCU-32S development board with the espressif32@2.0.0 toolchain version, and thus we utilize it.
+
 
 ## Flash the ESP32
 * Build and Upload the code to the ESP32.
