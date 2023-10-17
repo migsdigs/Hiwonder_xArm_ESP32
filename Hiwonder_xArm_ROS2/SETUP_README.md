@@ -139,6 +139,10 @@ pio run --target clean_microros  # Clean library
 ```
 
 Micro-ROS dependencies should now be added to the PlatformIO environment.
+If you have not done so already, you can now add ROS sourcing to the `~/.bashrc` file with:
+```bash
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+```
 
 ---
 
@@ -165,10 +169,15 @@ or
 sudo chmod a+rw /dev/ttyUSBX # X is the relevant USB number
 ```
 
+This is not permanent, and the change will need to be repeated every time the device is reconnected. Instead on can use:
+```bash
+sudo usermod -aG dialout <username>    # <username> is your username
+```
+
 ### 2. Micro-ROS - ROS2 conflict
 After installing ROS2, one of the recommended tutorials is [configuring environment](https://docs.ros.org/en/humble/Tutorials/Beginner-CLI-Tools/Configuring-ROS2-Environment.html). This sees the setting of a number of environment variables which lead to conflicts when installing micro-ROS, see [github issue](https://github.com/micro-ROS/micro-ROS-demos/issues/78). If you are experiencing issues with communicating with micro-ROS agents, the setting of these environment variables is a possible cause.
 
-### 4. Servos not moving (LX-16a Servo Library & ESP32 Toolchain)
+### 3. Servos not moving (LX-16a Servo Library & ESP32 Toolchain)
 The open source drivers for the Hiwonder servos are written to work for older versions of the ESP espressif toolchain. Later versions, for example espressif@4.0.0 which was released with the ESP32-DevKitC dev board, do not work with these drivers and you will experience read/write errors when trying to communicate with the servos. To ensure this does not occur please set up your `.ini` file as follows:
 ```ini
 [env:nodemcu-32s]
@@ -186,7 +195,7 @@ board_microros_distro = humble
 board_microros_transport = serial
 ```
 
-### 5. ROS2 Micro-ROS timers on ESP32
+### 4. ROS2 Micro-ROS timers on ESP32
 Micro-ROS has build-in functionality for timers and callbacks. Unfortunately, while we require older toolchain for the servo drivers to function, the micro-ROS timers for fail to function properly for the toolchain espressif@2.0.0. As such, we have made use of native ESP timer and interrupt service routines (ISR).
 
 ---
