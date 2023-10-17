@@ -37,7 +37,7 @@ Front View    | Side View
 
 ## Electronics Setup
 
-<img src="https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/electronic_config.jpg" alt="drawing" width="500"/>
+<img src="https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/assets/electronics_led4.jpg" alt="drawing" width="500"/>
 
 Servos can be daisy chained together. Thus all six servos may be chained together and connected as a single pin at GPIO pin 33 on the ESP32. It was found that the system experiences communication errors with the servos regularly when more than three servos are daisy chained together. As such they can be connected in parallel at pin 33. Two pairs of three chained servos are thus connected in parallel to pin 33.
 
@@ -102,7 +102,7 @@ echo "source /home/miguel_u22/microros_ws/install/setup.bash" >> ~/.bashrc    # 
     0000: 81 00 00 00 0A 01 05 00 01 00 00 00 80
     [1696498226.082373] debug    | SerialAgentLinux.cpp | recv_message             | [==>> SER <<==]        | client_key: 0x340D845A, len: 96, data:
     ```
-  The agent is now running, and we can begin communicating with the ESP32 via ROS2 to control the servos.
+  The agent is now running, and we can begin communicating with the ESP32 via ROS2 to control the servos. The LED on pin 4 (should you connect one) should light on. 
    
    If there is an issue, ensure that this is the correct serial connection. This can be verified by plugging in the ESP micro and running the following:
    ```bash
@@ -111,7 +111,7 @@ echo "source /home/miguel_u22/microros_ws/install/setup.bash" >> ~/.bashrc    # 
    ```
    Which indicates that the serial is connected to `ttyUSB0`.  
 
-3. To end the connection with micro-ROS press `ctrl + c` in the terminal. To restart the connection with micro-ROS just run `ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSB0 -v6`.
+3. To end the connection with micro-ROS press `ctrl + c` in the terminal. The LED on pin 4 will turn off. To restart the connection with micro-ROS just run `ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSB0 -v6`. 
 
   **Before proceeding, cut power to the servos and then restore it, to restart them.** I have found that this gives better responsiveness and less likely for the servos to fail on read or write commands.
 
