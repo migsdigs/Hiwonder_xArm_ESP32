@@ -157,7 +157,7 @@ Pick Up Object    | Wave
 
 
 #### Reading from the servos
-As is shown in the table, **Position, Temperature** & **Voltage** can be read from the servos. Voltage and temperature are published on start-up and then every 5 seconds, while servo positions are published at approximately 25 Hz. If you have problems reading from the servos (especially servo 1) please see [issues](add_link).
+As is shown in the table, **Position, Temperature** & **Voltage** can be read from the servos. Voltage and temperature are published on start-up and then every 5 seconds, while servo positions are published at approximately 25 Hz. If you have problems reading from the servos (especially servo 1) please see [issues](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/Hiwonder_xArm_ROS2/SETUP_README.md#5-reading-from-the-servos).
 
 1. `/servo_pos_publisher` - publishes servo positions in a JointState message, that includes the servo numbers, positions and time stamps.
    run `ros2 topic echo /servo_pos_publisher` and observe the published servo positions.
