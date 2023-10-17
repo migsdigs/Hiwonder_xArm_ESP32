@@ -71,6 +71,12 @@ Source the setup.bash file in the install folder:
 source install/setup.bash
 ```
 
+If you are confident this will not create any conflicts, you can add this line to the `~/.bashrc` so you do not have to source the micro-ROS workspace everytime:
+```bash
+echo "source /home/miguel_u22/microros_ws/install/setup.bash" >> ~/.bashrc    # replace with file path with your own
+```
+
+
 #### Run
 1. Plug the ESP32 into the host PC with the USB.
 2. In the micro-ros directory (for me `/home/miguel_u22/esp32_microros_ws`), run the micro-ROS agent:
@@ -109,9 +115,13 @@ source install/setup.bash
 
   **Before proceeding, cut power to the servos and then restore it, to restart them.** I have found that this gives better responsiveness and less likely for the servos to fail on read or write commands.
 
+
 ---
 
-#### ROS Topics (might need to update)
+
+#### ROS Topics 
+Run the micor-ROS agent as in [step 2](https://github.com/migsdigs/Hiwonder_xArm_ESP32/edit/main/README.md#run) above.
+
 Running `ros2 topic list`, the available ROS2 topics should be listed.
 ```bash
 miguel_u22@miguelpc:~$ ros2 topic list
@@ -124,9 +134,9 @@ miguel_u22@miguelpc:~$ ros2 topic list
 ```
 
 #### Moving the servos
-The position of the servos can be controlled using the `/multi_servo_cmd_sub` topic. Any number of servos can be moved at once by specifying the disired servo angle (centi-degrees) and the time (milli-seconds) for the servos to carry out this command. The publish message from the terminal is structured as follows:
+The position of the servos can be controlled using the `/multi_servo_cmd_sub` topic. Any number of servos can be moved at once by specifying the disired servo angle (centi-degrees) and the time (milli-seconds) for the servos to carry out this command. The publish message from the terminal is an Int16MultiArray msg structured as follows:
 ```bash
-ros2 topic pub /multi_servo_cmd_sub --once std_msgs/Int64MultiArray "{layout: {dim: [{label: '', size: 0, stride: 0}], data_offset: 0}, data: [12000,12000,12000,12000,12000,12000,500,500,500,500,500,500]}"
+ros2 topic pub /multi_servo_cmd_sub --once std_msgs/Int16MultiArray "{layout: {dim: [{label: '', size: 0, stride: 0}], data_offset: 0}, data: [12000,12000,12000,12000,12000,12000,500,500,500,500,500,500]}"
 ```
 
 The data component of the message contains the desired servo positions and the move time. It should always contain 12 integer entries. To be more clear it is structured as follows:
@@ -138,7 +148,7 @@ If the servos do not move following this command, kinda see the [Issues](https:/
 
 The servos will only move if a positive position is given, and if a position is given outside of a servo angular range, the servo will move to its limit. For instance, to move only servo 1 and servo 3, one could give the following:
 
-`ros2 topic pub /multi_servo_cmd_sub --once std_msgs/Int64MultiArray "{layout: {dim: [{label: '', size: 0, stride: 0}], data_offset: 0}, data: [7000,-1,2000,-1,-1,-1,500,500,500,500,500,500]}"`
+`ros2 topic pub /multi_servo_cmd_sub --once std_msgs/Int16MultiArray "{layout: {dim: [{label: '', size: 0, stride: 0}], data_offset: 0}, data: [7000,-1,2000,-1,-1,-1,500,500,500,500,500,500]}"`
 
 
 Pick Up Object    | Wave
@@ -147,7 +157,7 @@ Pick Up Object    | Wave
 
 
 #### Reading from the servos
-As is shown in the table, **Position, Temperature** & **Voltage** can be read from the servos. Voltage and temperature are published on start-up and then every 5 seconds, while servo positions are published at approximately 25 Hz.
+As is shown in the table, **Position, Temperature** & **Voltage** can be read from the servos. Voltage and temperature are published on start-up and then every 5 seconds, while servo positions are published at approximately 25 Hz. If you have problems reading from the servos (especially servo 1) please see [issues](add_link).
 
 1. `/servo_pos_publisher` - publishes servo positions in a JointState message, that includes the servo numbers, positions and time stamps.
    run `ros2 topic echo /servo_pos_publisher` and observe the published servo positions.
@@ -211,6 +221,7 @@ As is shown in the table, **Position, Temperature** & **Voltage** can be read fr
    - 7583
    ---
    ```
+
 
 
 ## Resources that maybe be useful in future
