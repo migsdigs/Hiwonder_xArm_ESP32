@@ -115,7 +115,8 @@ While the board being used is an ESP32-DevKitC-32E, the LX-16a servo driver libr
 
 Now open your IDE and the PlatformIO environment. In the terminal, begin with:
 ```console
-apt install -y git cmake python3-pip
+sudo apt install -y git cmake python3-pip
+sudo apt install platformio
 ```
 
 The library should already be included as a git library dependence, but if it is not, add the following to the `platform.ini` file:
@@ -125,7 +126,7 @@ lib_deps =
     https://github.com/micro-ROS/micro_ros_platformio
 ```
 
-In the terminal again, run the following, and ensure it is successful:
+In the terminal again, ensure that ROS is not sourced i.e. `source /opt/ros/humble/setup.bash` is not called in the terminal or in `~/.bashrc`, and run the following, ensure it is successful:
 ```console
 pio lib install # Install dependencies
 pio run # Build the firmware
@@ -146,6 +147,8 @@ Micro-ROS dependencies should now be added to the PlatformIO environment.
 * Build and Upload the code to the ESP32.
 * The light on GPIO2 should blink twice, and then rapidly.
 * The light on GPIO22 should blink every 5s.
+
+The system should now be ready for use (see basic [readme](https://github.com/migsdigs/Hiwonder_xArm_ESP32/blob/main/README.md) for running) and development of ROS2 packages.
     
 ---
 
