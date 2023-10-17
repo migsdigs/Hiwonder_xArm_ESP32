@@ -30,6 +30,8 @@ mkdir -p ~/hiwonder_xArm_ws/src
 cd hiwonder_xArm_ws
 ```
 
+All your new ROS2 packages pertaining to this workspace should be created in `.../hiwonder_xArm_ws/src`.
+
 Build the workspace environment using Colcon:
 ```bash
 colcon build
@@ -197,5 +199,11 @@ board_microros_transport = serial
 
 ### 4. ROS2 Micro-ROS timers on ESP32
 Micro-ROS has build-in functionality for timers and callbacks. Unfortunately, while we require older toolchain for the servo drivers to function, the micro-ROS timers for fail to function properly for the toolchain espressif@2.0.0. As such, we have made use of native ESP timer and interrupt service routines (ISR).
+
+### 5. Reading from the Servos
+It was found that sometimes there is difficulty reading from all the servos. When the servos were all daisy chained together 1-6, and when attempting to read at high rates, the first three servos would often return read errors. It was thus found that for best performance:
+* Not more than 3 servos should be chained together i.e. chain 1-3, 4-6 and connect their serial wires in parallel on the ESP32 pin (pin 33 in this case).
+* Furthermore connecting servo 1 on its own line i.e. 1, 2-3, 4-6 was found to improve the reading on servo 1.
+* Lastly, setting power to the servos after launching the micro-ROS connection to the ESP was found to help.
 
 ---
