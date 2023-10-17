@@ -223,6 +223,17 @@ As is shown in the table, **Position, Temperature** & **Voltage** can be read fr
    ```
 
 
+## Simple Example ROS2 Package for Hiwonder xArm
+An example of a simple package for this arm is given in the [arm_servos_pubs_subs](https://github.com/migsdigs/Hiwonder_xArm_ESP32/tree/main/arm_servos_pubs_subs) folder. This package can be copied into your workspace source folder (in this case `/home/miguel_u22/esp32_microros_ws/src`) and built using `colcon build`.
+
+Its corresponding launch file, with an example of how to configuring the micro-ros-agent for the launch file is also given in [launch](https://github.com/migsdigs/Hiwonder_xArm_ESP32/tree/main/launch). This launch folder can be copied into the workspace (`/home/miguel_u22/esp32_microros_ws/src`), and following the build of the package using `colcon build`, the package can be launched in the terminal using:
+
+```bash
+ros2 launch servo_arm_esp32_launch.py
+```
+
+This serves primarily as just a simple example, upon which users can expand upon and implement more complex functionality in their own packages.
+
 
 ## Resources that maybe be useful in future
 * Hiwonder [xArm ESP32](https://drive.google.com/drive/folders/1byfHmnIkZJo7QB-uKPXycNivOwka033q?usp=drive_link) google drive.
