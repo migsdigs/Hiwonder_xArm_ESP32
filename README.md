@@ -120,7 +120,7 @@ echo "source /home/miguel_u22/microros_ws/install/setup.bash" >> ~/.bashrc    # 
 
 
 #### ROS Topics 
-Run the micor-ROS agent as in [step 2](https://github.com/migsdigs/Hiwonder_xArm_ESP32/edit/main/README.md#run) above.
+Run the micro-ROS agent as in [step 2](https://github.com/migsdigs/Hiwonder_xArm_ESP32/edit/main/README.md#run) above.
 
 Running `ros2 topic list`, the available ROS2 topics should be listed.
 ```bash
